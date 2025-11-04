@@ -151,7 +151,7 @@ export default function QuizPage() {
       setLoading(false)
     } catch (error) {
       console.error('❌ DEBUG: Client error:', error)
-      alert(`Client Error: ${error.message}`)
+      alert(`Client Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setLoading(false)
     }
   }

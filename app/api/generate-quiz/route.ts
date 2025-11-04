@@ -56,7 +56,7 @@ Return ONLY valid JSON array:
       const content = data.choices[0].message.content;
       
       // Parse JSON from response
-      const jsonMatch = content.match(/\[.*\]/s);
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const questions = JSON.parse(jsonMatch[0]);
         return NextResponse.json({ questions, modelUsed: sourceText ? "Groq (File-based)" : "Groq Llama3.1-70B" });
@@ -82,7 +82,7 @@ Return ONLY valid JSON array:
       const content = fallbackData.choices[0].message.content;
       
       // Parse JSON from response
-      const jsonMatch = content.match(/\[.*\]/s);
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const questions = JSON.parse(jsonMatch[0]);
         return NextResponse.json({ questions, modelUsed: sourceText ? "OpenRouter (File-based)" : "OpenRouter Mixtral-8x7B" });
