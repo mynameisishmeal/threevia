@@ -8,6 +8,7 @@ import { Brain, Clock, Trophy, ArrowLeft } from 'lucide-react'
 import QuizResults from '@/components/QuizResults'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
+import ResumeQuizDialog from '@/components/ResumeQuizDialog'
 
 interface Question {
   question: string
@@ -26,6 +27,8 @@ export default function QuizPage() {
   const [timeLeft, setTimeLeft] = useState(30)
   const [showAnswer, setShowAnswer] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
+  const [showResumeDialog, setShowResumeDialog] = useState(false)
+  const [savedProgress, setSavedProgress] = useState<any>(null)
 
   const topic = searchParams.get('topic') || 'General Knowledge'
   const difficulty = searchParams.get('difficulty') || 'medium'
@@ -109,15 +112,9 @@ export default function QuizPage() {
       const progressData = await progressResponse.json()
       
       if (progressData.found) {
-        const shouldResume = confirm(`Found saved progress from ${new Date(progressData.lastSaved).toLocaleString()}. Resume quiz?`)
-        if (shouldResume) {
-          setQuestions(progressData.questions)
-          setCurrentQuestion(progressData.currentQuestion)
-          setScore(progressData.score)
-          setModelUsed('Resumed')
-          setLoading(false)
-          return
-        }
+        setSavedProgress(progressData)
+        setShowResumeDialog(true)
+        return
       }
       
       console.log('🔍 DEBUG: Starting quiz generation for:', { topic, difficulty, count })
@@ -239,6 +236,51 @@ export default function QuizPage() {
     setTimeLeft(30)
   }
 
+  const handleResumeQuiz = () => {
+    if (savedProgress) {
+      setQuestions(savedProgress.questions)
+      setCurrentQuestion(savedProgress.currentQuestion)
+      setScore(savedProgress.score)
+      setModelUsed('Resumed')
+      setLoading(false)
+    }
+    setShowResumeDialog(false)
+  }
+
+  const handleStartNewQuiz = () => {
+    setShowResumeDialog(false)
+    // Continue with normal quiz generation
+    const continueGeneration = async () => {
+      try {
+        console.log('🔍 DEBUG: Starting quiz generation for:', { topic, difficulty, count })
+        const response = await fetch('/api/generate-quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic, difficulty, count, sourceText })
+        })
+        
+        const data = await response.json()
+        
+        if (data.error) {
+          alert(`AI Generation Failed: ${data.error}`)
+          setLoading(false)
+          return
+        }
+        
+        if (data.questions && data.questions.length > 0) {
+          setQuestions(data.questions)
+          setModelUsed(data.modelUsed || 'Unknown')
+        }
+        
+        setLoading(false)
+      } catch (error) {
+        alert(`Client Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        setLoading(false)
+      }
+    }
+    continueGeneration()
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -268,6 +310,15 @@ export default function QuizPage() {
             </Card>
           </div>
         </div>
+        
+        <ResumeQuizDialog
+          open={showResumeDialog}
+          onResume={handleResumeQuiz}
+          onStartNew={handleStartNewQuiz}
+          savedAt={savedProgress?.lastSaved || ''}
+          topic={topic}
+          progress={savedProgress ? `${savedProgress.currentQuestion + 1}/${savedProgress.questions.length}` : ''}
+        />
       </div>
     )
   }
@@ -424,6 +475,15 @@ export default function QuizPage() {
           </div>
         </div>
       </div>
+      
+      <ResumeQuizDialog
+        open={showResumeDialog}
+        onResume={handleResumeQuiz}
+        onStartNew={handleStartNewQuiz}
+        savedAt={savedProgress?.lastSaved || ''}
+        topic={topic}
+        progress={savedProgress ? `${savedProgress.currentQuestion + 1}/${savedProgress.questions.length}` : ''}
+      />
     </div>
   )
 }
