@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/lib/auth'
 import LoginModal from '@/components/LoginModal'
 import TrendingTopics from '@/components/TrendingTopics'
+import MultiplayerModal from '@/components/MultiplayerModal'
 
 const categories = [
   { name: 'Nigeria Constitution', icon: '⚖️', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
@@ -59,6 +60,7 @@ export default function HomePage() {
   const [darkMode, setDarkMode] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [fileContent, setFileContent] = useState('')
+  const [showMultiplayer, setShowMultiplayer] = useState(false)
 
   useEffect(() => {
     if (darkMode) {
@@ -235,13 +237,22 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <Button 
-                  onClick={handleStartQuiz}
-                  className="w-full h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                  disabled={!customTopic && !selectedCategory && !fileContent}
-                >
-                  🚀 Start Quiz
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    onClick={handleStartQuiz}
+                    className="h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    disabled={!customTopic && !selectedCategory && !fileContent}
+                  >
+                    🚀 Solo Quiz
+                  </Button>
+                  <Button 
+                    onClick={() => setShowMultiplayer(true)}
+                    className="h-12 text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    disabled={!customTopic && !selectedCategory && !fileContent}
+                  >
+                    🎮 Multiplayer
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -282,6 +293,15 @@ export default function HomePage() {
 
           {/* Login Modal */}
           <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
+          
+          {/* Multiplayer Modal */}
+          <MultiplayerModal 
+            open={showMultiplayer} 
+            onClose={() => setShowMultiplayer(false)}
+            topic={customTopic || selectedCategory || 'General Knowledge'}
+            difficulty={difficulty}
+            questionCount={questionCount}
+          />
         </div>
 
         <div className="text-center mt-12 text-gray-500">
