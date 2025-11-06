@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     
     await db.collection('multiplayer_rooms').updateOne(
       { roomCode },
-      { $pull: { players: { name: playerToKick } } }
+      { $pull: { players: { name: playerToKick } } } as any
     )
     
     return NextResponse.json({ success: true })

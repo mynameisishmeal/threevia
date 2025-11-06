@@ -110,7 +110,7 @@ export default function MultiplayerQuiz({ room, playerName, roomCode }: Multipla
         </div>
         
         <div className="space-y-3">
-          {sortedPlayers.map((player, index) => (
+          {sortedPlayers.map((player: any, index: number) => (
             <div key={player.name} className={`flex items-center justify-between p-4 rounded-lg ${
               index === 0 ? 'bg-yellow-100 border-2 border-yellow-400' :
               index === 1 ? 'bg-gray-100 border-2 border-gray-400' :
@@ -161,7 +161,7 @@ export default function MultiplayerQuiz({ room, playerName, roomCode }: Multipla
           </div>
 
           <div className="space-y-3">
-            {currentQuestion.options.map((option, index) => {
+            {currentQuestion.options.map((option: string, index: number) => {
               const isSelected = selectedAnswer === index
               const isCorrect = index === currentQuestion.correct
               const showAnswer = hasAnswered || timeLeft === 0
@@ -228,7 +228,7 @@ export default function MultiplayerQuiz({ room, playerName, roomCode }: Multipla
         <CardContent className="pt-4">
           <h3 className="font-semibold mb-3">Live Scores</h3>
           <div className="space-y-2">
-            {[...room.players].sort((a, b) => b.score - a.score).map((player, index) => (
+            {[...room.players].sort((a: any, b: any) => b.score - a.score).map((player: any, index: number) => (
               <div key={player.name} className="flex items-center justify-between">
                 <span className={`${player.name === playerName ? 'font-bold text-purple-600' : ''}`}>
                   #{index + 1} {player.name}

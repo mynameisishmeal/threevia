@@ -211,7 +211,7 @@ export default function MultiplayerPage() {
                 </div>
               )}
 
-              {room.status === 'playing' && room.questions && (
+              {room.status === 'playing' && room.questions && playerName && roomCode && (
                 <MultiplayerQuiz 
                   room={room}
                   playerName={playerName}
