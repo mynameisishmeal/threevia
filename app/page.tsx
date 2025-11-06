@@ -63,6 +63,17 @@ export default function HomePage() {
   const [showMultiplayer, setShowMultiplayer] = useState(false)
 
   useEffect(() => {
+    // Load dark mode from localStorage on mount
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
+    setDarkMode(savedDarkMode)
+    if (savedDarkMode) {
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  useEffect(() => {
+    // Save and apply dark mode changes
+    localStorage.setItem('darkMode', darkMode.toString())
     if (darkMode) {
       document.documentElement.classList.add('dark')
     } else {
