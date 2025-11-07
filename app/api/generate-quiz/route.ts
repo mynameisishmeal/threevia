@@ -10,6 +10,21 @@ export async function POST(req: Request) {
       hard: 'Complex analysis, advanced problem-solving, synthesis of multiple concepts'
     };
 
+    // Get previously used questions to avoid repeats
+    let usedQuestions: string[] = []
+    if (!sourceText) {
+      try {
+        const historyResponse = await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history?topic=${encodeURIComponent(topic)}&difficulty=${difficulty}`)
+        const historyData = await historyResponse.json()
+        usedQuestions = historyData.usedQuestions || []
+      } catch (error) {
+        console.log('Could not fetch question history:', error)
+      }
+    }
+
+    const avoidRepeatText = usedQuestions.length > 0 ? 
+      `\n\nAVOID these previously asked questions:\n${usedQuestions.slice(-20).map(q => `- ${q}`).join('\n')}\n\nGenerate COMPLETELY DIFFERENT questions on the same topic.` : ''
+
     const prompt = `
 You are a professional quiz creator. Generate ${count} multiple-choice questions
 ${sourceText ? `based ONLY on this content:\n\n${sourceText}\n\n` : `on the topic "${topic}"`}
@@ -19,13 +34,14 @@ Difficulty: ${difficulty} (${difficultyGuides[difficulty as keyof typeof difficu
 ${!sourceText ? `For ${topic}:
 - Easy: Grade 6-8 level concepts
 - Medium: High school level analysis  
-- Hard: College/advanced level thinking` : ''}
+- Hard: College/advanced level thinking` : ''}${avoidRepeatText}
 
 IMPORTANT: 
 - Double-check all calculations and facts for accuracy
 - Ensure the correct answer is actually correct
 - Make plausible but incorrect distractors
 - Each question must have exactly one correct answer
+- Generate fresh, unique questions not asked before
 
 Return ONLY valid JSON array:
 [
@@ -68,6 +84,20 @@ Return ONLY valid JSON array:
       if (jsonMatch) {
         const questions = JSON.parse(jsonMatch[0]);
         console.log('✅ DEBUG: Using Groq successfully');
+        
+        // Save question history to prevent repeats
+        if (!sourceText) {
+          try {
+            await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ questions, topic, difficulty })
+            })
+          } catch (error) {
+            console.log('Could not save question history:', error)
+          }
+        }
+        
         return NextResponse.json({ questions, modelUsed: sourceText ? "Groq (File-based)" : "Groq Llama3.1-70B" });
       }
     } else {
@@ -101,6 +131,20 @@ Return ONLY valid JSON array:
       if (jsonMatch) {
         const questions = JSON.parse(jsonMatch[0]);
         console.log('✅ DEBUG: Using OpenRouter fallback');
+        
+        // Save question history to prevent repeats
+        if (!sourceText) {
+          try {
+            await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ questions, topic, difficulty })
+            })
+          } catch (error) {
+            console.log('Could not save question history:', error)
+          }
+        }
+        
         return NextResponse.json({ questions, modelUsed: sourceText ? "OpenRouter (File-based)" : "OpenRouter GPT-4o-mini" });
       }
     } else {
@@ -133,6 +177,20 @@ Return ONLY valid JSON array:
         if (jsonMatch) {
           const questions = JSON.parse(jsonMatch[0]);
           console.log('✅ DEBUG: Using Google Gemini fallback');
+          
+          // Save question history to prevent repeats
+          if (!sourceText) {
+            try {
+              await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questions, topic, difficulty })
+              })
+            } catch (error) {
+              console.log('Could not save question history:', error)
+            }
+          }
+          
           return NextResponse.json({ questions, modelUsed: sourceText ? "Gemini (File-based)" : "Google Gemini-1.5-Flash" });
         }
       } else {

@@ -114,6 +114,7 @@ export default function QuizPage() {
       if (progressData.found) {
         setSavedProgress(progressData)
         setShowResumeDialog(true)
+        setLoading(false) // Stop loading while showing dialog
         return
       }
       
@@ -243,42 +244,45 @@ export default function QuizPage() {
       setScore(savedProgress.score)
       setModelUsed('Resumed')
       setLoading(false)
+      setShowResumeDialog(false)
+      return // Important: prevent generateQuiz from running
     }
     setShowResumeDialog(false)
   }
 
   const handleStartNewQuiz = () => {
     setShowResumeDialog(false)
-    // Continue with normal quiz generation
-    const continueGeneration = async () => {
-      try {
-        console.log('🔍 DEBUG: Starting quiz generation for:', { topic, difficulty, count })
-        const response = await fetch('/api/generate-quiz', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic, difficulty, count, sourceText })
-        })
-        
-        const data = await response.json()
-        
-        if (data.error) {
-          alert(`AI Generation Failed: ${data.error}`)
-          setLoading(false)
-          return
-        }
-        
-        if (data.questions && data.questions.length > 0) {
-          setQuestions(data.questions)
-          setModelUsed(data.modelUsed || 'Unknown')
-        }
-        
+    setSavedProgress(null) // Clear saved progress
+    generateNewQuiz() // Generate fresh quiz
+  }
+
+  const generateNewQuiz = async () => {
+    try {
+      console.log('🔍 DEBUG: Starting quiz generation for:', { topic, difficulty, count })
+      const response = await fetch('/api/generate-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, difficulty, count, sourceText })
+      })
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        alert(`AI Generation Failed: ${data.error}`)
         setLoading(false)
-      } catch (error) {
-        alert(`Client Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        setLoading(false)
+        return
       }
+      
+      if (data.questions && data.questions.length > 0) {
+        setQuestions(data.questions)
+        setModelUsed(data.modelUsed || 'Unknown')
+      }
+      
+      setLoading(false)
+    } catch (error) {
+      alert(`Client Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setLoading(false)
     }
-    continueGeneration()
   }
 
   if (loading) {
