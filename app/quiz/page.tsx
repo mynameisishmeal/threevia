@@ -178,6 +178,11 @@ export default function QuizPage() {
     if (correct) {
       setScore(score + 1)
     }
+    
+    // Auto-advance after 3 seconds
+    setTimeout(() => {
+      handleNextQuestion()
+    }, 3000)
   }
 
   const handleNextQuestion = () => {
@@ -468,12 +473,17 @@ export default function QuizPage() {
                       </div>
                     )}
                   </div>
-                  <Button 
-                    onClick={handleNextQuestion}
-                    className="w-full"
-                  >
-                    {currentQuestion + 1 === questions.length ? 'Finish Quiz' : 'Next Question'}
-                  </Button>
+                  <div className="text-center">
+                    <div className="text-sm text-gray-600 mb-2">
+                      Next question in 3 seconds...
+                    </div>
+                    <Button 
+                      onClick={handleNextQuestion}
+                      className="w-full"
+                    >
+                      {currentQuestion + 1 === questions.length ? 'Finish Quiz' : 'Next Question'} (or wait)
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

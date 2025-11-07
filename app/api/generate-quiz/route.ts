@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     let usedQuestions: string[] = []
     if (!sourceText) {
       try {
-        const historyResponse = await fetch(`/api/question-history?topic=${encodeURIComponent(topic)}&difficulty=${difficulty}`)
+        const historyResponse = await fetch(`http://localhost:3000/api/question-history?topic=${encodeURIComponent(topic)}&difficulty=${difficulty}`)
         if (historyResponse.ok) {
           const historyData = await historyResponse.json()
           usedQuestions = historyData.usedQuestions || []
@@ -89,7 +89,7 @@ Return ONLY valid JSON array:
         
         // Save question history to prevent repeats
         if (!sourceText) {
-          fetch('/api/question-history', {
+          fetch('http://localhost:3000/api/question-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ questions, topic, difficulty })
@@ -132,7 +132,7 @@ Return ONLY valid JSON array:
         
         // Save question history to prevent repeats
         if (!sourceText) {
-          fetch('/api/question-history', {
+          fetch('http://localhost:3000/api/question-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ questions, topic, difficulty })
@@ -174,7 +174,7 @@ Return ONLY valid JSON array:
           
           // Save question history to prevent repeats
           if (!sourceText) {
-            fetch('/api/question-history', {
+            fetch('http://localhost:3000/api/question-history', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ questions, topic, difficulty })
