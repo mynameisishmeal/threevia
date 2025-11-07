@@ -14,9 +14,11 @@ export async function POST(req: Request) {
     let usedQuestions: string[] = []
     if (!sourceText) {
       try {
-        const historyResponse = await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history?topic=${encodeURIComponent(topic)}&difficulty=${difficulty}`)
-        const historyData = await historyResponse.json()
-        usedQuestions = historyData.usedQuestions || []
+        const historyResponse = await fetch(`/api/question-history?topic=${encodeURIComponent(topic)}&difficulty=${difficulty}`)
+        if (historyResponse.ok) {
+          const historyData = await historyResponse.json()
+          usedQuestions = historyData.usedQuestions || []
+        }
       } catch (error) {
         console.log('Could not fetch question history:', error)
       }
@@ -87,15 +89,11 @@ Return ONLY valid JSON array:
         
         // Save question history to prevent repeats
         if (!sourceText) {
-          try {
-            await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ questions, topic, difficulty })
-            })
-          } catch (error) {
-            console.log('Could not save question history:', error)
-          }
+          fetch('/api/question-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ questions, topic, difficulty })
+          }).catch(error => console.log('Could not save question history:', error))
         }
         
         return NextResponse.json({ questions, modelUsed: sourceText ? "Groq (File-based)" : "Groq Llama3.1-70B" });
@@ -134,15 +132,11 @@ Return ONLY valid JSON array:
         
         // Save question history to prevent repeats
         if (!sourceText) {
-          try {
-            await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ questions, topic, difficulty })
-            })
-          } catch (error) {
-            console.log('Could not save question history:', error)
-          }
+          fetch('/api/question-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ questions, topic, difficulty })
+          }).catch(error => console.log('Could not save question history:', error))
         }
         
         return NextResponse.json({ questions, modelUsed: sourceText ? "OpenRouter (File-based)" : "OpenRouter GPT-4o-mini" });
@@ -180,15 +174,11 @@ Return ONLY valid JSON array:
           
           // Save question history to prevent repeats
           if (!sourceText) {
-            try {
-              await fetch(`${process.env.NEXTJS_URL || 'http://localhost:3000'}/api/question-history`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ questions, topic, difficulty })
-              })
-            } catch (error) {
-              console.log('Could not save question history:', error)
-            }
+            fetch('/api/question-history', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ questions, topic, difficulty })
+            }).catch(error => console.log('Could not save question history:', error))
           }
           
           return NextResponse.json({ questions, modelUsed: sourceText ? "Gemini (File-based)" : "Google Gemini-1.5-Flash" });

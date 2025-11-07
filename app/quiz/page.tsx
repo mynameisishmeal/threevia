@@ -98,6 +98,8 @@ export default function QuizPage() {
 
   const generateQuiz = async () => {
     try {
+      console.log('🔍 DEBUG: Starting generateQuiz function')
+      
       // Check for saved progress first
       const progressResponse = await fetch('/api/load-progress', {
         method: 'POST',
@@ -110,11 +112,13 @@ export default function QuizPage() {
       })
       
       const progressData = await progressResponse.json()
+      console.log('🔍 DEBUG: Progress data:', progressData)
       
       if (progressData.found) {
+        console.log('🔍 DEBUG: Found saved progress, showing dialog')
         setSavedProgress(progressData)
         setShowResumeDialog(true)
-        setLoading(false) // Stop loading while showing dialog
+        // Don't set loading to false here - let the dialog handle it
         return
       }
       
@@ -126,6 +130,11 @@ export default function QuizPage() {
       })
       
       console.log('🔍 DEBUG: API response status:', response.status)
+      if (!response.ok) {
+        console.error('🔍 DEBUG: API response not ok:', response.statusText)
+        throw new Error(`API returned ${response.status}: ${response.statusText}`)
+      }
+      
       const data = await response.json()
       console.log('🔍 DEBUG: API response data:', data)
       
