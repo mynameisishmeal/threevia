@@ -18,8 +18,11 @@ export default function MultiplayerPage() {
   const [myReadyStatus, setMyReadyStatus] = useState(false)
   const [showKickDialog, setShowKickDialog] = useState(false)
   const [playerToKick, setPlayerToKick] = useState('')
+  const [startingQuiz, setStartingQuiz] = useState(false)
+  const [togglingReady, setTogglingReady] = useState(false)
 
   const startQuiz = async () => {
+    setStartingQuiz(true)
     try {
       await fetch('/api/multiplayer/start-quiz', {
         method: 'POST',
@@ -28,10 +31,12 @@ export default function MultiplayerPage() {
       })
     } catch (error) {
       alert('Failed to start quiz')
+      setStartingQuiz(false)
     }
   }
 
   const toggleReady = async () => {
+    setTogglingReady(true)
     const newStatus = !myReadyStatus
     setMyReadyStatus(newStatus)
     
@@ -44,6 +49,7 @@ export default function MultiplayerPage() {
     } catch (error) {
       console.error('Failed to toggle ready:', error)
     }
+    setTogglingReady(false)
   }
 
   const kickPlayer = async () => {
@@ -181,21 +187,19 @@ export default function MultiplayerPage() {
                   <div className="space-y-3">
                     <Button 
                       onClick={toggleReady}
+                      disabled={togglingReady}
                       className={`w-full ${myReadyStatus ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
                     >
-                      {myReadyStatus ? 'Not Ready' : 'Ready Up'}
+                      {togglingReady ? '⏳ Updating...' : myReadyStatus ? 'Not Ready' : 'Ready Up'}
                     </Button>
                     
                     {room.hostName === playerName && (
                       <Button 
                         onClick={startQuiz}
-                        disabled={room.players.length < 2 || !room.players.every((p: any) => p.ready)}
+                        disabled={room.players.length < 2 || startingQuiz}
                         className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
                       >
-                        {room.players.every((p: any) => p.ready) ? 
-                          `Start Quiz (${room.players.length} players)` : 
-                          'Waiting for all players to be ready...'
-                        }
+                        {startingQuiz ? '⏳ Starting Quiz...' : `Start Quiz (${room.players.length} players)`}
                       </Button>
                     )}
                     

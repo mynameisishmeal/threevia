@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     await db.collection('multiplayer_rooms').updateOne(
       { roomCode, 'players.name': playerName },
       { $set: { 'players.$.ready': ready } }
-    )
+    ) as any
     
     return NextResponse.json({ success: true })
   } catch (error) {

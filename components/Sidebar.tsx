@@ -9,7 +9,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { icon: Home, label: 'Home', href: '/', description: 'Create solo quizzes' },
-    { icon: Users, label: 'Multiplayer', href: '/rooms', description: 'Join quiz battles' },
+    { icon: Users, label: 'Public Rooms', href: '/rooms', description: 'Browse active rooms' },
     { icon: Trophy, label: 'Dashboard', href: '/dashboard', description: 'View your stats' },
     { icon: TrendingUp, label: 'Trending', href: '/#trending', description: 'Popular topics' },
     { icon: FileText, label: 'Upload Quiz', href: '/#upload', description: 'Custom content' },
@@ -70,8 +70,34 @@ export default function Sidebar() {
             ))}
           </nav>
 
-          {/* Features */}
+          {/* Multiplayer Options */}
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Multiplayer</h3>
+            <div className="space-y-2 mb-6">
+              <a
+                href="/rooms"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                <Users className="h-4 w-4" />
+                Browse Public Rooms
+              </a>
+              <button
+                onClick={() => {
+                  setIsOpen(false)
+                  // Trigger multiplayer modal on homepage
+                  window.location.href = '/#multiplayer'
+                }}
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors w-full text-left"
+              >
+                <span className="text-purple-500">🎮</span>
+                Create/Join Room
+              </button>
+            </div>
+          </div>
+
+          {/* Features */}
+          <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Features</h3>
             <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-2">

@@ -29,6 +29,7 @@ export default function QuizPage() {
   const [isCorrect, setIsCorrect] = useState(false)
   const [showResumeDialog, setShowResumeDialog] = useState(false)
   const [savedProgress, setSavedProgress] = useState<any>(null)
+  const [submittingAnswer, setSubmittingAnswer] = useState(false)
 
   const topic = searchParams.get('topic') || 'General Knowledge'
   const difficulty = searchParams.get('difficulty') || 'medium'
@@ -171,6 +172,7 @@ export default function QuizPage() {
   const handleSubmitAnswer = () => {
     if (selectedAnswer === null) return
     
+    setSubmittingAnswer(true)
     const correct = selectedAnswer === questions[currentQuestion]?.correct
     setIsCorrect(correct)
     setShowAnswer(true)
@@ -182,6 +184,7 @@ export default function QuizPage() {
     // Auto-advance after 3 seconds
     setTimeout(() => {
       handleNextQuestion()
+      setSubmittingAnswer(false)
     }, 3000)
   }
 
@@ -451,10 +454,10 @@ export default function QuizPage() {
               {!showAnswer ? (
                 <Button 
                   onClick={handleSubmitAnswer}
-                  disabled={selectedAnswer === null}
+                  disabled={selectedAnswer === null || submittingAnswer}
                   className="w-full"
                 >
-                  Submit Answer
+                  {submittingAnswer ? '⏳ Submitting...' : 'Submit Answer'}
                 </Button>
               ) : (
                 <div className="space-y-3">

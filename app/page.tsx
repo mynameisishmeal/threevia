@@ -61,6 +61,7 @@ export default function HomePage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [fileContent, setFileContent] = useState('')
   const [showMultiplayer, setShowMultiplayer] = useState(false)
+  const [startingQuiz, setStartingQuiz] = useState(false)
 
   useEffect(() => {
     // Load dark mode from localStorage on mount
@@ -113,6 +114,8 @@ export default function HomePage() {
   const handleStartQuiz = async () => {
     const topic = customTopic || selectedCategory || (uploadedFile ? uploadedFile.name : '')
     if (!topic && !fileContent) return
+    
+    setStartingQuiz(true)
     
     // Track topic for trending
     if (topic && !fileContent) {
@@ -252,9 +255,9 @@ export default function HomePage() {
                   <Button 
                     onClick={handleStartQuiz}
                     className="h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                    disabled={!customTopic && !selectedCategory && !fileContent}
+                    disabled={!customTopic && !selectedCategory && !fileContent || startingQuiz}
                   >
-                    🚀 Solo Quiz
+                    {startingQuiz ? '⏳ Starting...' : '🚀 Solo Quiz'}
                   </Button>
                   <Button 
                     onClick={() => setShowMultiplayer(true)}
