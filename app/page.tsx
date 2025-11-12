@@ -167,10 +167,12 @@ export default function HomePage() {
 
         <div className="max-w-4xl mx-auto">
           {/* Trending Topics */}
-          <TrendingTopics onTopicSelect={(topic) => {
-            setCustomTopic(topic)
-            setSelectedCategory('')
-          }} />
+          <div data-section="trending">
+            <TrendingTopics onTopicSelect={(topic) => {
+              setCustomTopic(topic)
+              setSelectedCategory('')
+            }} />
+          </div>
           
           {/* Quick Categories */}
           <div className="mb-8">
@@ -291,7 +293,7 @@ export default function HomePage() {
           </Card>
 
           {/* File Upload */}
-          <Card className="mb-6">
+          <Card className="mb-6" data-section="upload">
             <CardContent className="pt-6">
               <div className="space-y-4">
                 <Label>Or Upload Your Own Content</Label>

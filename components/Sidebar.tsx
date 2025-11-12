@@ -11,8 +11,8 @@ export default function Sidebar() {
     { icon: Home, label: 'Home', href: '/', description: 'Create solo quizzes' },
     { icon: Users, label: 'Public Rooms', href: '/rooms', description: 'Browse active rooms' },
     { icon: Trophy, label: 'Dashboard', href: '/dashboard', description: 'View your stats' },
-    { icon: TrendingUp, label: 'Trending', href: '/#trending', description: 'Popular topics' },
-    { icon: FileText, label: 'Upload Quiz', href: '/#upload', description: 'Custom content' },
+    { icon: TrendingUp, label: 'Trending', href: '/', scrollTo: 'trending', description: 'Popular topics' },
+    { icon: FileText, label: 'Upload Quiz', href: '/', scrollTo: 'upload', description: 'Custom content' },
   ]
 
   return (
@@ -54,7 +54,19 @@ export default function Sidebar() {
               <a
                 key={item.label}
                 href={item.href}
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  setIsOpen(false)
+                  if (item.scrollTo) {
+                    e.preventDefault()
+                    window.location.href = item.href
+                    setTimeout(() => {
+                      const element = document.querySelector(`[data-section="${item.scrollTo}"]`)
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' })
+                      }
+                    }, 100)
+                  }
+                }}
                 className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors group"
               >
                 <item.icon className="h-5 w-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-600 mt-0.5" />

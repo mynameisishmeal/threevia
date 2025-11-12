@@ -90,44 +90,44 @@ export default function PublicRoomsPage() {
                 <Card key={room.roomCode} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
+                      <CardTitle className="text-lg truncate">
                         {room.topic}
                       </CardTitle>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 flex-shrink-0">
                         Room: {room.roomCode}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span>Difficulty: {room.difficulty}</span>
-                          <span>Questions: {room.questionCount}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-gray-600">
+                          <span className="whitespace-nowrap">Difficulty: {room.difficulty}</span>
+                          <span className="whitespace-nowrap">Questions: {room.questionCount}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
                             room.status === 'waiting' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                           }`}>
                             {room.status === 'waiting' ? 'Waiting' : 'Playing'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
-                          <Users className="h-4 w-4" />
-                          <span>{room.players.length}/8 players</span>
+                          <Users className="h-4 w-4 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{room.players.length}/8 players</span>
                           {room.spectators?.length > 0 && (
-                            <span className="text-gray-500">• {room.spectators.length} spectators</span>
+                            <span className="text-gray-500 whitespace-nowrap">• {room.spectators.length} spectators</span>
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-shrink-0">
                         {room.status === 'waiting' && room.players.length < 8 && (
-                          <Button onClick={() => joinRoom(room.roomCode, false)}>
+                          <Button onClick={() => joinRoom(room.roomCode, false)} className="whitespace-nowrap">
                             Join Game
                           </Button>
                         )}
                         <Button 
                           variant="outline" 
                           onClick={() => joinRoom(room.roomCode, true)}
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 whitespace-nowrap"
                         >
                           <Eye className="h-4 w-4" />
                           Spectate
