@@ -55,7 +55,7 @@ export default function Sidebar() {
                 key={item.label}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors group"
               >
                 <item.icon className="h-5 w-5 text-gray-600 dark:text-gray-400 group-hover:text-blue-600 mt-0.5" />
                 <div>
@@ -77,7 +77,7 @@ export default function Sidebar() {
               <a
                 href="/rooms"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-colors"
               >
                 <Users className="h-4 w-4" />
                 Browse Public Rooms
@@ -88,7 +88,7 @@ export default function Sidebar() {
                   // Trigger multiplayer modal on homepage
                   window.location.href = '/#multiplayer'
                 }}
-                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors w-full text-left"
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 focus:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-colors w-full text-left p-2"
               >
                 <span className="text-purple-500">🎮</span>
                 Create/Join Room
