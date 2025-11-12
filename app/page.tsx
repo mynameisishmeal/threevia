@@ -62,6 +62,7 @@ export default function HomePage() {
   const [fileContent, setFileContent] = useState('')
   const [showMultiplayer, setShowMultiplayer] = useState(false)
   const [startingQuiz, setStartingQuiz] = useState(false)
+  const [showTooltip, setShowTooltip] = useState<string | null>(null)
 
   useEffect(() => {
     // Load dark mode from localStorage on mount
@@ -173,7 +174,7 @@ export default function HomePage() {
           
           {/* Quick Categories */}
           <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4 dark:text-white">Popular Categories</h3>
+            <h3 className="text-lg font-semibold mb-4 dark:text-white">Educational Options</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {categories.map((category) => (
                 <button
@@ -221,20 +222,30 @@ export default function HomePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Difficulty</Label>
-                    <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg relative">
                       {[{id: 'easy', label: 'Easy', icon: '🟢'}, {id: 'medium', label: 'Medium', icon: '🟡'}, {id: 'hard', label: 'Hard', icon: '🔴'}].map((diff) => (
-                        <button
-                          key={diff.id}
-                          type="button"
-                          onClick={() => setDifficulty(diff.id)}
-                          className={`px-3 py-2 text-sm rounded-md transition-all ${
-                            difficulty === diff.id
-                              ? 'bg-white dark:bg-gray-700 shadow-sm font-medium'
-                              : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
-                          }`}
-                        >
-                          {diff.icon} {diff.label}
-                        </button>
+                        <div key={diff.id} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setDifficulty(diff.id)}
+                            onTouchStart={() => setShowTooltip(diff.id)}
+                            onTouchEnd={() => setTimeout(() => setShowTooltip(null), 1000)}
+                            title={diff.label}
+                            className={`w-full px-2 py-2 text-xs sm:text-sm rounded-md transition-all truncate ${
+                              difficulty === diff.id
+                                ? 'bg-white dark:bg-gray-700 shadow-sm font-medium'
+                                : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
+                            }`}
+                          >
+                            <span className="block sm:inline">{diff.icon}</span>
+                            <span className="hidden sm:inline ml-1">{diff.label}</span>
+                          </button>
+                          {showTooltip === diff.id && (
+                            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 sm:hidden">
+                              {diff.label}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -242,11 +253,19 @@ export default function HomePage() {
                     <Label>Questions</Label>
                     <Input
                       type="number"
-                      min="1"
-                      max="50"
-                      value={questionCount}
-                      onChange={(e) => setQuestionCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
-                      placeholder="Enter number (1-50)"
+                      value={questionCount === 0 ? '' : questionCount}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (value === '') {
+                          setQuestionCount(0)
+                        } else {
+                          const num = parseInt(value)
+                          if (!isNaN(num)) {
+                            setQuestionCount(Math.min(50, num))
+                          }
+                        }
+                      }}
+                      placeholder="Max 50"
                     />
                   </div>
                 </div>

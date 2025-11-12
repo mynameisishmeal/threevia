@@ -20,6 +20,7 @@ export default function MultiplayerPage() {
   const [playerToKick, setPlayerToKick] = useState('')
   const [startingQuiz, setStartingQuiz] = useState(false)
   const [togglingReady, setTogglingReady] = useState(false)
+  const isSpectator = searchParams.get('spectator') === 'true'
 
   const startQuiz = async () => {
     setStartingQuiz(true)
@@ -132,13 +133,35 @@ export default function MultiplayerPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <Button variant="outline" onClick={() => window.location.href = '/'}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Leave Room
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => window.location.href = '/'}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Leave Room
+              </Button>
+              {room.hostName === playerName && (
+                <Button 
+                  variant="destructive" 
+                  onClick={async () => {
+                    if (confirm('End room for all players?')) {
+                      await fetch('/api/multiplayer/end-room', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roomCode, playerName })
+                      })
+                      window.location.href = '/'
+                    }
+                  }}
+                >
+                  End Room
+                </Button>
+              )}
+            </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">Room: {roomCode}</div>
-              <div className="text-sm text-gray-600">{room.topic} • {room.difficulty}</div>
+              <div className="text-sm text-gray-600">
+                {room.topic} • {room.difficulty}
+                {room.isPrivate && <span className="ml-2">🔒 Private</span>}
+              </div>
             </div>
           </div>
 
@@ -147,6 +170,9 @@ export default function MultiplayerPage() {
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Players ({room.players.length}/8)
+                {room.spectators?.length > 0 && (
+                  <span className="text-sm text-gray-500">• {room.spectators.length} spectators</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -178,7 +204,20 @@ export default function MultiplayerPage() {
                 ))}
               </div>
 
-              {room.status === 'waiting' && (
+              {room.spectators?.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">Spectators:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {room.spectators.map((spectator: string, index: number) => (
+                      <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        👁️ {spectator}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {room.status === 'waiting' && !isSpectator && (
                 <div className="mt-6 text-center">
                   <div className="text-gray-600 mb-4">
                     Waiting for more players... Share the room code: <strong>{roomCode}</strong><br/>
@@ -220,6 +259,7 @@ export default function MultiplayerPage() {
                   room={room}
                   playerName={playerName}
                   roomCode={roomCode}
+                  isSpectator={isSpectator}
                 />
               )}
 
@@ -229,6 +269,15 @@ export default function MultiplayerPage() {
                   <Button className="mt-4" onClick={() => window.location.href = '/'}>
                     New Quiz
                   </Button>
+                </div>
+              )}
+
+              {isSpectator && room.status === 'waiting' && (
+                <div className="mt-6 text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-blue-600 font-medium">👁️ Spectating Mode</div>
+                  <div className="text-sm text-blue-500 mt-1">
+                    You're watching this game. You can see all questions but can't participate.
+                  </div>
                 </div>
               )}
             </CardContent>

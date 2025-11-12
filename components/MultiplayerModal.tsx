@@ -19,6 +19,7 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(false)
 
   const handleCreateRoom = async () => {
     if (!playerName.trim()) return
@@ -32,7 +33,8 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
           hostName: playerName,
           topic,
           difficulty,
-          questionCount
+          questionCount,
+          isPrivate
         })
       })
       
@@ -46,9 +48,9 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
     setLoading(false)
   }
 
-  const handleJoinRoom = async () => {
+  const handleJoinRoom = async (asSpectator = false) => {
     if (!roomCode.trim()) return
-    const randomName = `Player${Math.floor(Math.random() * 1000)}`
+    const randomName = `${asSpectator ? 'Spectator' : 'Player'}${Math.floor(Math.random() * 1000)}`
     setLoading(true)
     
     try {
@@ -57,13 +59,15 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomCode: roomCode.toUpperCase(),
-          playerName: randomName
+          playerName: randomName,
+          asSpectator
         })
       })
       
       const data = await response.json()
       if (data.success) {
-        window.location.href = `/multiplayer?room=${roomCode.toUpperCase()}&player=${randomName}`
+        const spectatorParam = asSpectator ? '&spectator=true' : ''
+        window.location.href = `/multiplayer?room=${roomCode.toUpperCase()}&player=${randomName}${spectatorParam}`
       } else {
         alert(data.error || 'Failed to join room')
       }
@@ -110,6 +114,18 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
                 maxLength={20}
               />
             </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="private-room"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                className="rounded"
+              />
+              <Label htmlFor="private-room" className="text-sm">
+                🔒 Private Room (requires code to join)
+              </Label>
+            </div>
             <div className="flex gap-2">
               <Button onClick={() => setMode('menu')} variant="outline" className="flex-1">
                 Back
@@ -133,12 +149,17 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
                 autoFocus
               />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setMode('menu')} variant="outline" className="flex-1">
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button onClick={() => handleJoinRoom(false)} disabled={loading || !roomCode.trim()} className="flex-1">
+                  {loading ? 'Joining...' : 'Join as Player'}
+                </Button>
+                <Button onClick={() => handleJoinRoom(true)} disabled={loading || !roomCode.trim()} variant="outline" className="flex-1">
+                  {loading ? 'Joining...' : '👁️ Spectate'}
+                </Button>
+              </div>
+              <Button onClick={() => setMode('menu')} variant="outline" className="w-full">
                 Back
-              </Button>
-              <Button onClick={handleJoinRoom} disabled={loading || !roomCode.trim()} className="flex-1">
-                {loading ? 'Joining...' : 'Join Room'}
               </Button>
             </div>
           </div>

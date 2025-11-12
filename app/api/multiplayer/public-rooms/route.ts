@@ -7,8 +7,9 @@ export async function GET() {
     
     const rooms = await db.collection('multiplayer_rooms')
       .find({ 
-        status: 'waiting',
-        createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+        status: { $in: ['waiting', 'playing'] },
+        isPrivate: { $ne: true },
+        endedAt: null
       })
       .sort({ createdAt: -1 })
       .limit(20)

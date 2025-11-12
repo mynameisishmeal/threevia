@@ -9,9 +9,10 @@ interface MultiplayerQuizProps {
   room: any
   playerName: string
   roomCode: string
+  isSpectator?: boolean
 }
 
-export default function MultiplayerQuiz({ room, playerName, roomCode }: MultiplayerQuizProps) {
+export default function MultiplayerQuiz({ room, playerName, roomCode, isSpectator = false }: MultiplayerQuizProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [timeLeft, setTimeLeft] = useState(30)
   const [hasAnswered, setHasAnswered] = useState(false)
@@ -156,7 +157,7 @@ export default function MultiplayerQuiz({ room, playerName, roomCode }: Multipla
 
       <Card>
         <CardContent className="pt-6">
-          <div className="text-xl font-medium mb-6">
+          <div className="text-lg sm:text-xl font-medium mb-6 break-words">
             {currentQuestion.question}
           </div>
 
@@ -169,8 +170,8 @@ export default function MultiplayerQuiz({ room, playerName, roomCode }: Multipla
               return (
                 <button
                   key={index}
-                  onClick={() => submitAnswer(index)}
-                  disabled={hasAnswered || timeLeft === 0}
+                  onClick={() => !isSpectator && submitAnswer(index)}
+                  disabled={hasAnswered || timeLeft === 0 || isSpectator}
                   className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
                     showAnswer
                       ? isCorrect
@@ -180,6 +181,8 @@ export default function MultiplayerQuiz({ room, playerName, roomCode }: Multipla
                         : 'border-gray-200 opacity-60'
                       : isSelected
                       ? 'border-purple-500 bg-purple-50'
+                      : isSpectator
+                      ? 'border-gray-200 cursor-default'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -194,9 +197,16 @@ export default function MultiplayerQuiz({ room, playerName, roomCode }: Multipla
             })}
           </div>
 
-          {(hasAnswered || timeLeft === 0) && (
+          {(hasAnswered || timeLeft === 0 || isSpectator) && (
             <div className="mt-4 space-y-3">
-              {playerAnswer && (
+              {isSpectator && (
+                <div className="p-3 bg-blue-50 rounded-lg text-center">
+                  <div className="font-semibold text-blue-600">👁️ Spectating Mode</div>
+                  <div className="text-sm text-blue-500">Watch the players compete!</div>
+                </div>
+              )}
+              
+              {!isSpectator && playerAnswer && (
                 <div className="p-3 bg-blue-50 rounded-lg text-center">
                   <div className="font-semibold">
                     {playerAnswer.correct ? '🎉 Correct!' : '❌ Incorrect'}

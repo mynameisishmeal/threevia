@@ -84,7 +84,7 @@ Return ONLY valid JSON array:
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       console.log('🔍 DEBUG: JSON match found:', !!jsonMatch);
       if (jsonMatch) {
-        const questions = JSON.parse(jsonMatch[0]);
+        const questions = JSON.parse(jsonMatch[0]).slice(0, count);
         console.log('✅ DEBUG: Using Groq successfully');
         
         // Save question history to prevent repeats
@@ -127,7 +127,7 @@ Return ONLY valid JSON array:
       // Parse JSON from response
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        const questions = JSON.parse(jsonMatch[0]);
+        const questions = JSON.parse(jsonMatch[0]).slice(0, count);
         console.log('✅ DEBUG: Using OpenRouter fallback');
         
         // Save question history to prevent repeats
@@ -169,7 +169,7 @@ Return ONLY valid JSON array:
         
         const jsonMatch = content.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
-          const questions = JSON.parse(jsonMatch[0]);
+          const questions = JSON.parse(jsonMatch[0]).slice(0, count);
           console.log('✅ DEBUG: Using Google Gemini fallback');
           
           // Save question history to prevent repeats

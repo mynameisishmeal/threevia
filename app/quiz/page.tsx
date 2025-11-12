@@ -375,7 +375,7 @@ export default function QuizPage() {
                 </span>
               </div>
               <div className="text-sm text-gray-600">
-                {currentQuestion + 1} / {questions.length}
+                {currentQuestion + 1} / {questions.length || count}
               </div>
             </div>
           </div>
@@ -394,7 +394,7 @@ export default function QuizPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="text-xl font-medium">
+              <div className="text-lg sm:text-xl font-medium break-words">
                 {question.question}
               </div>
 
@@ -495,9 +495,9 @@ export default function QuizPage() {
           <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg p-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm text-gray-600 dark:text-gray-400">Progress</span>
-              <span className="text-sm font-medium">{currentQuestion + 1} / {questions.length}</span>
+              <span className="text-sm font-medium">{currentQuestion + 1} / {questions.length || count}</span>
             </div>
-            <Progress value={((currentQuestion + 1) / questions.length) * 100} className="h-3" />
+            <Progress value={((currentQuestion + 1) / (questions.length || count)) * 100} className="h-3" />
           </div>
         </div>
       </div>
