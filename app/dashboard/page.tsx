@@ -151,7 +151,7 @@ export default function Dashboard() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => window.location.href = `/multiplayer?room=${room.roomCode}&player=${user?.email}`}
+                        onClick={() => window.location.href = `/multiplayer?room=${room.roomCode}&player=${(user as any)?.email || 'guest'}`}
                       >
                         Join
                       </Button>

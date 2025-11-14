@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     
     await db.collection('gamble_matches').updateOne(
       { matchCode },
-      { $push: { players: { name: playerName, betPaid: false, score: 0 } } }
+      { $push: { players: { name: playerName, betPaid: false, score: 0 } } } as any
     )
     
     return NextResponse.json({ success: true, match })

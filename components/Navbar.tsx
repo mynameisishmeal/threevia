@@ -79,7 +79,7 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/20 px-3 py-1 rounded-full">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-bold text-green-800 dark:text-green-200">{user.username}</span>
+                  <span className="text-xs font-bold text-green-800 dark:text-green-200">{user.email}</span>
                 </div>
                 <button 
                   onClick={() => window.location.href = '/dashboard'}

@@ -23,7 +23,11 @@ export async function POST(req: Request) {
     
     // Check if both players paid, start match
     const updatedMatch = await db.collection('gamble_matches').findOne({ matchCode })
-    const allPaid = updatedMatch.players.every(p => p.betPaid)
+    if (!updatedMatch) {
+      return NextResponse.json({ error: 'Match not found after update' }, { status: 404 })
+    }
+    
+    const allPaid = updatedMatch.players.every((p: any) => p.betPaid)
     
     if (allPaid && updatedMatch.players.length === 2) {
       await db.collection('gamble_matches').updateOne(
