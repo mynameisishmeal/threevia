@@ -38,7 +38,7 @@ export default function TrendingTopics({ onTopicSelect }: TrendingTopicsProps) {
           🔥
           Trending Topics
         </h3>
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="h-10 w-32 rounded-full flex-shrink-0 bg-gray-200 dark:bg-gray-700 animate-pulse" />
           ))}
@@ -57,7 +57,7 @@ export default function TrendingTopics({ onTopicSelect }: TrendingTopicsProps) {
         🔥
         Trending Topics
       </h3>
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {topics.map((topic, index) => (
           <button
             key={topic.topic}

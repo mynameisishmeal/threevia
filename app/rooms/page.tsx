@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Brain, Users, ArrowLeft, Eye } from 'lucide-react'
+import { Brain, Users, Eye } from 'lucide-react'
+import Navbar from '@/components/Navbar'
 
 export default function PublicRoomsPage() {
   const [rooms, setRooms] = useState<any[]>([])
@@ -53,93 +52,84 @@ export default function PublicRoomsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <Button variant="outline" onClick={() => window.location.href = '/'}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-purple-600">Public Rooms</h1>
-              <p className="text-sm text-gray-600">Join ongoing quiz battles</p>
-            </div>
-            <div></div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12">
-              <Brain className="h-12 w-12 animate-pulse text-purple-600 mx-auto mb-4" />
-              <div className="text-xl font-semibold">Loading rooms...</div>
-            </div>
-          ) : rooms.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <div className="text-6xl mb-4">🏠</div>
-                <h2 className="text-xl font-semibold mb-2">No Public Rooms</h2>
-                <p className="text-gray-600 mb-4">Be the first to create a public room!</p>
-                <Button onClick={() => window.location.href = '/'}>
-                  Create Room
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {rooms.map((room) => (
-                <Card key={room.roomCode} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg truncate">
-                        {room.topic}
-                      </CardTitle>
-                      <div className="text-sm text-gray-500 flex-shrink-0">
-                        Room: {room.roomCode}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-gray-600">
-                          <span className="whitespace-nowrap">Difficulty: {room.difficulty}</span>
-                          <span className="whitespace-nowrap">Questions: {room.questionCount}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
-                            room.status === 'waiting' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {room.status === 'waiting' ? 'Waiting' : 'Playing'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Users className="h-4 w-4 flex-shrink-0" />
-                          <span className="whitespace-nowrap">{room.players.length}/8 players</span>
-                          {room.spectators?.length > 0 && (
-                            <span className="text-gray-500 whitespace-nowrap">• {room.spectators.length} spectators</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        {room.status === 'waiting' && room.players.length < 8 && (
-                          <Button onClick={() => joinRoom(room.roomCode, false)} className="whitespace-nowrap">
-                            Join Game
-                          </Button>
-                        )}
-                        <Button 
-                          variant="outline" 
-                          onClick={() => joinRoom(room.roomCode, true)}
-                          className="flex items-center gap-1 whitespace-nowrap"
-                        >
-                          <Eye className="h-4 w-4" />
-                          Spectate
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+    <div className="min-h-screen bg-white dark:bg-slate-900">
+      <Navbar />
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Public Rooms</h1>
+          <p className="text-slate-600 dark:text-slate-400">Join ongoing quiz battles</p>
         </div>
+
+        {loading ? (
+          <div className="text-center py-12">
+            <Brain className="h-12 w-12 animate-pulse text-blue-500 mx-auto mb-4" />
+            <div className="text-xl font-semibold text-slate-900 dark:text-slate-100">Loading rooms...</div>
+          </div>
+        ) : rooms.length === 0 ? (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
+            <div className="text-6xl mb-4">🏠</div>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">No Public Rooms</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">Be the first to create a public room!</p>
+            <button 
+              onClick={() => window.location.href = '/'}
+              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors"
+            >
+              Create Room
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {rooms.map((room) => (
+              <div key={room.roomCode} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    {room.topic}
+                  </h3>
+                  <div className="text-sm text-slate-500 flex-shrink-0">
+                    Room: {room.roomCode}
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-2 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-slate-600 dark:text-slate-400">
+                      <span className="whitespace-nowrap">Difficulty: {room.difficulty}</span>
+                      <span className="whitespace-nowrap">Questions: {room.questionCount}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
+                        room.status === 'waiting' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      }`}>
+                        {room.status === 'waiting' ? 'Waiting' : 'Playing'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                      <Users className="h-4 w-4 flex-shrink-0" />
+                      <span className="whitespace-nowrap">{room.players.length}/8 players</span>
+                      {room.spectators?.length > 0 && (
+                        <span className="whitespace-nowrap">• {room.spectators.length} spectators</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {room.status === 'waiting' && room.players.length < 8 && (
+                      <button 
+                        onClick={() => joinRoom(room.roomCode, false)} 
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        Join Game
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => joinRoom(room.roomCode, true)}
+                      className="flex items-center gap-1 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 font-medium rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Spectate
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

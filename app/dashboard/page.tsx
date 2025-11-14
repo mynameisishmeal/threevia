@@ -22,10 +22,22 @@ interface QuizResult {
   completedAt: string
 }
 
+interface UserRoom {
+  roomCode: string
+  topic: string
+  difficulty: string
+  questionCount: number
+  status: string
+  players: any[]
+  createdAt: string
+  isPrivate: boolean
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState<UserStats | null>(null)
   const [recentQuizzes, setRecentQuizzes] = useState<QuizResult[]>([])
+  const [userRooms, setUserRooms] = useState<UserRoom[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -36,24 +48,56 @@ export default function Dashboard() {
 
   const fetchUserData = async () => {
     try {
-      const [statsRes, quizzesRes] = await Promise.all([
+      const [statsRes, quizzesRes, roomsRes] = await Promise.all([
         fetch('/api/user-stats', {
           headers: { Authorization: `Bearer ${localStorage.getItem('auth-token')}` }
         }),
         fetch('/api/user-quizzes', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('auth-token')}` }
+        }),
+        fetch('/api/multiplayer/user-rooms', {
           headers: { Authorization: `Bearer ${localStorage.getItem('auth-token')}` }
         })
       ])
 
       const statsData = await statsRes.json()
       const quizzesData = await quizzesRes.json()
+      const roomsData = await roomsRes.json()
 
       setStats(statsData)
       setRecentQuizzes(quizzesData.quizzes || [])
+      setUserRooms(roomsData.rooms || [])
     } catch (error) {
       console.error('Failed to fetch user data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEndRoom = async (roomCode: string) => {
+    if (!confirm('Are you sure you want to end this room? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/multiplayer/end-room', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+        },
+        body: JSON.stringify({ roomCode })
+      })
+
+      if (response.ok) {
+        // Refresh rooms data
+        fetchUserData()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Failed to end room')
+      }
+    } catch (error) {
+      alert('Failed to end room')
     }
   }
 
@@ -67,6 +111,59 @@ export default function Dashboard() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go Home
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>My Rooms</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : userRooms.length > 0 ? (
+              <div className="space-y-3">
+                {userRooms.slice(0, 5).map((room) => (
+                  <div key={room.roomCode} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div>
+                      <p className="font-medium">{room.topic}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {room.roomCode} • {room.difficulty} • {room.players.length} players • {room.status}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {room.status === 'waiting' && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleEndRoom(room.roomCode)}
+                        >
+                          End Room
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.location.href = `/multiplayer?room=${room.roomCode}&player=${user?.email}`}
+                      >
+                        Join
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600 dark:text-gray-400 text-center py-8">
+                No rooms created yet. Create your first multiplayer room!
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -104,7 +201,7 @@ export default function Dashboard() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
-                  <Star className="h-8 w-8 text-yellow-600" />
+                  <Star className="h-8 w-8 text-blue-600" />
                   <div className="ml-4">
                     <p className="text-2xl font-bold">{stats?.totalPoints || 0}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Points</p>
@@ -151,7 +248,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Recent Quizzes</CardTitle>
@@ -207,8 +304,8 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className={`flex items-center p-3 rounded-lg ${(stats?.totalPoints || 0) >= 100 ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
-                  <Star className={`h-6 w-6 mr-3 ${(stats?.totalPoints || 0) >= 100 ? 'text-yellow-600' : 'text-gray-400'}`} />
+                <div className={`flex items-center p-3 rounded-lg ${(stats?.totalPoints || 0) >= 100 ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                  <Star className={`h-6 w-6 mr-3 ${(stats?.totalPoints || 0) >= 100 ? 'text-blue-600' : 'text-gray-400'}`} />
                   <div>
                     <p className="font-medium">Point Collector</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Earn 100 points</p>

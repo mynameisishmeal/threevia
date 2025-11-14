@@ -1,358 +1,467 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Brain, Trophy, Upload, Zap, User, LogIn, Moon, Sun } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useAuth } from '@/lib/auth'
+import { useState, useEffect, useCallback } from 'react'
+import { Send, Paperclip } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import LoginModal from '@/components/LoginModal'
-import TrendingTopics from '@/components/TrendingTopics'
 import MultiplayerModal from '@/components/MultiplayerModal'
+import GambleModal from '@/components/GambleModal'
+import Navbar from '@/components/Navbar'
+import WelcomeDialog from '@/components/WelcomeDialog'
 
-const categories = [
-  { name: 'Nigeria Constitution', icon: '⚖️', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
-  { name: 'Bible Stories', icon: '📖', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' },
-  { name: 'African Geography', icon: '🌍', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-  { name: 'Mathematics', icon: '🔢', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
-  { name: 'Science', icon: '🧪', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200' },
-  { name: 'History', icon: '🏛️', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' },
-  { name: 'Literature', icon: '📚', color: 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200' },
-  { name: 'Sports', icon: '⚽', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }
-]
+type ConversationStep = 'topic' | 'mode' | 'difficulty' | 'questions' | 'generating'
 
-function UserButton({ onLoginClick }: { onLoginClick: () => void }) {
-  const { user, signOut, loading } = useAuth()
-
-  if (loading) {
-    return <div className="w-24 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-  }
-
-  if (user) {
-    return (
-      <div className="flex items-center gap-2">
-        <Button variant="outline" onClick={() => window.location.href = '/dashboard'}>
-          Dashboard
-        </Button>
-        <Button variant="outline" onClick={signOut}>
-          Sign Out
-        </Button>
-      </div>
-    )
-  }
-
-  return (
-    <Button variant="outline" onClick={onLoginClick}>
-      <LogIn className="h-4 w-4 mr-2" />
-      Login (Optional)
-    </Button>
-  )
+interface Message {
+  type: 'user' | 'assistant'
+  content: string
 }
 
+interface QuizConfig {
+  topic: string
+  mode: string
+  difficulty: string
+  questionCount: number
+}
+
+const TOPIC_SUGGESTIONS = ['Mathematics', 'Science', 'History', 'Literature', 'Geography', 'Sports', 'Technology', 'Art']
+
+const MODE_OPTIONS = [
+  { name: 'Solo', key: 'solo', emoji: '🎯', desc: 'Practice alone' },
+  { name: 'Multiplayer', key: 'multiplayer', emoji: '⚔️', desc: 'Battle others' },
+  { name: 'Gamble', key: 'gamble', emoji: '💰', desc: 'Bet & win' }
+]
+
+const DIFFICULTY_OPTIONS = [
+  { name: 'Easy', color: 'emerald', points: '2x', emoji: '🟢' },
+  { name: 'Medium', color: 'blue', points: '3x', emoji: '🔵' },
+  { name: 'Hard', color: 'cyan', points: '5x', emoji: '🔥' }
+]
+
+const QUESTION_OPTIONS = [
+  { count: 5, emoji: '⚡' }, { count: 10, emoji: '🎯' }, { count: 15, emoji: '🔥' },
+  { count: 20, emoji: '💪' }, { count: 30, emoji: '🚀' }, { count: 50, emoji: '🏆' }
+]
+
 export default function HomePage() {
-  const [customTopic, setCustomTopic] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
-  const [difficulty, setDifficulty] = useState('medium')
-  const [questionCount, setQuestionCount] = useState(10)
-  const [showLogin, setShowLogin] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
+  const router = useRouter()
+  const [inputValue, setInputValue] = useState('')
+  const [conversationStep, setConversationStep] = useState<ConversationStep>('topic')
+  const [messages, setMessages] = useState<Message[]>([])
+  const [quizConfig, setQuizConfig] = useState<QuizConfig>({
+    topic: '',
+    mode: '',
+    difficulty: 'medium',
+    questionCount: 10
+  })
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [fileContent, setFileContent] = useState('')
+  const [showLogin, setShowLogin] = useState(false)
   const [showMultiplayer, setShowMultiplayer] = useState(false)
-  const [startingQuiz, setStartingQuiz] = useState(false)
-  const [showTooltip, setShowTooltip] = useState<string | null>(null)
+  const [showGamble, setShowGamble] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    // Load dark mode from localStorage on mount
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
-    setDarkMode(savedDarkMode)
-    if (savedDarkMode) {
-      document.documentElement.classList.add('dark')
+  const getAIResponse = useCallback((step: ConversationStep, input: string): string => {
+    const responses = {
+      topic: [
+        `🎯 Awesome choice! "${input}" sounds fascinating. What mode would you like to play?`,
+        `🚀 Nice topic! "${input}" is going to be epic. Choose your battle mode:`,
+        `⚡ Love it! "${input}" is a great subject. Pick your game mode:`,
+        `🎮 Sweet! "${input}" will make for an amazing quiz. What's your preferred mode?`
+      ],
+      mode: [
+        `🎯 ${input.toUpperCase()} mode selected! Now let's set the difficulty - what level gets your brain buzzing?`,
+        `🚀 ${input.toUpperCase()} it is! Ready to level up? Pick your difficulty:`,
+        `⚡ ${input.toUpperCase()} mode locked in! Time to choose your challenge level:`,
+        `🎮 ${input.toUpperCase()} mode activated! What's your skill level?`
+      ],
+      difficulty: [
+        `🔥 ${input.toUpperCase()} mode activated! You're brave. How many questions can you handle?`,
+        `💪 ${input.toUpperCase()} difficulty locked in! Feeling confident? How many questions?`,
+        `⚔️ ${input.toUpperCase()} level selected! Ready for battle? Pick your question count:`,
+        `🎯 ${input.toUpperCase()} it is! Let's see what you're made of. Question count?`
+      ],
+      questions: [
+        `🎊 Perfect! ${input} ${quizConfig.difficulty} questions about "${quizConfig.topic}" coming right up! Get ready to earn some serious points! 🏆`,
+        `🚀 Locked and loaded! ${input} ${quizConfig.difficulty} questions on "${quizConfig.topic}". Time to show off your knowledge! 💎`,
+        `⚡ Game on! ${input} ${quizConfig.difficulty}-level questions about "${quizConfig.topic}". Let's see those brain muscles flex! 🧠`,
+        `🎮 Challenge accepted! ${input} ${quizConfig.difficulty} questions on "${quizConfig.topic}". Points and glory await! ⭐`
+      ],
+      generating: ['Perfect! Generating your quiz now...']
+    }
+    
+    const options = responses[step] || []
+    return options[Math.floor(Math.random() * options.length)]
+  }, [quizConfig])
+
+  const validateInput = useCallback((step: ConversationStep, input: string): { valid: boolean; error?: string } => {
+    switch (step) {
+      case 'topic':
+        return input.trim().length >= 3 
+          ? { valid: true }
+          : { valid: false, error: '🤔 That\'s a bit short! Please give me a proper topic like "Mathematics" or "History".' }
+      
+      case 'mode':
+        const validModes = ['solo', 's', '1', 'single', 'multiplayer', 'multi', 'm', '2', 'battle', 'gamble', 'g', '3', 'bet', 'wager']
+        return validModes.includes(input.toLowerCase())
+          ? { valid: true }
+          : { valid: false, error: '🎮 Please choose: solo, multiplayer, or gamble' }
+      
+      case 'difficulty':
+        const validDifficulties = ['easy', 'e', '1', 'medium', 'm', '2', 'hard', 'h', '3', 'beast']
+        return validDifficulties.includes(input.toLowerCase())
+          ? { valid: true }
+          : { valid: false, error: '🎯 Please choose a valid difficulty: easy, medium, or hard' }
+      
+      case 'questions':
+        const count = parseInt(input)
+        if (isNaN(count) || count < 5) {
+          return { valid: false, error: '🔢 Please enter a valid number of questions (5 or more)!' }
+        }
+        if (count > 50) {
+          return { valid: false, error: '🚫 Whoa there! Maximum 50 questions allowed. Let\'s try that again!' }
+        }
+        return { valid: true }
+      
+      default:
+        return { valid: true }
     }
   }, [])
 
-  useEffect(() => {
-    // Save and apply dark mode changes
-    localStorage.setItem('darkMode', darkMode.toString())
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+  const processInput = useCallback((step: ConversationStep, input: string) => {
+    switch (step) {
+      case 'topic':
+        return input.trim()
+      
+      case 'mode':
+        const modeMap: Record<string, string> = {
+          'solo': 'solo', 's': 'solo', '1': 'solo', 'single': 'solo',
+          'multiplayer': 'multiplayer', 'multi': 'multiplayer', 'm': 'multiplayer', '2': 'multiplayer', 'battle': 'multiplayer',
+          'gamble': 'gamble', 'g': 'gamble', '3': 'gamble', 'bet': 'gamble', 'wager': 'gamble'
+        }
+        return modeMap[input.toLowerCase()] || 'solo'
+      
+      case 'difficulty':
+        const difficultyMap: Record<string, string> = {
+          'easy': 'easy', 'e': 'easy', '1': 'easy',
+          'medium': 'medium', 'm': 'medium', '2': 'medium',
+          'hard': 'hard', 'h': 'hard', '3': 'hard', 'beast': 'hard'
+        }
+        return difficultyMap[input.toLowerCase()] || 'medium'
+      
+      case 'questions':
+        return Math.min(Math.max(parseInt(input) || 10, 5), 50).toString()
+      
+      default:
+        return input
     }
-  }, [darkMode])
+  }, [])
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showLogin) {
-        setShowLogin(false)
-      }
-      if (e.key === 'Enter' && (customTopic || selectedCategory || fileContent)) {
-        handleStartQuiz()
-      }
-    }
+  const handleStartQuiz = useCallback(async () => {
+    setIsLoading(true)
     
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showLogin, customTopic, selectedCategory, fileContent])
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setUploadedFile(file)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const text = e.target?.result as string
-        setFileContent(text)
-        setCustomTopic('')
-        setSelectedCategory('')
-      }
-      reader.readAsText(file)
-    }
-  }
-
-  const handleStartQuiz = async () => {
-    const topic = customTopic || selectedCategory || (uploadedFile ? uploadedFile.name : '')
-    if (!topic && !fileContent) return
-    
-    setStartingQuiz(true)
-    
-    // Track topic for trending
-    if (topic && !fileContent) {
-      try {
+    try {
+      if (quizConfig.topic && !fileContent) {
         await fetch('/api/track-topic', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic })
+          body: JSON.stringify({ topic: quizConfig.topic })
         })
-      } catch (error) {
-        console.error('Failed to track topic:', error)
       }
+      
+      const params = new URLSearchParams({
+        topic: quizConfig.topic,
+        difficulty: quizConfig.difficulty,
+        count: quizConfig.questionCount.toString(),
+        ...(fileContent && { content: fileContent })
+      })
+      
+      router.push(`/quiz?${params.toString()}`)
+    } catch (error) {
+      console.error('Failed to start quiz:', error)
+      setIsLoading(false)
+    }
+  }, [quizConfig, fileContent, router])
+
+  const handleSendMessage = useCallback(async () => {
+    if (!inputValue.trim() || isLoading) return
+    
+    const userMessage: Message = { type: 'user', content: inputValue }
+    setMessages(prev => [...prev, userMessage])
+    
+    const validation = validateInput(conversationStep, inputValue)
+    if (!validation.valid) {
+      setMessages(prev => [...prev, { type: 'assistant', content: validation.error! }])
+      setInputValue('')
+      return
     }
     
-    const params = new URLSearchParams({
-      topic,
-      difficulty,
-      count: questionCount.toString()
-    })
+    const processedInput = processInput(conversationStep, inputValue)
+    const response = getAIResponse(conversationStep, processedInput)
     
-    if (fileContent) {
-      params.append('sourceText', fileContent)
+    setTimeout(() => {
+      setMessages(prev => [...prev, { type: 'assistant', content: response }])
+      
+      switch (conversationStep) {
+        case 'topic':
+          setQuizConfig(prev => ({ ...prev, topic: processedInput }))
+          setConversationStep('mode')
+          break
+        case 'mode':
+          setQuizConfig(prev => ({ ...prev, mode: processedInput }))
+          setConversationStep('difficulty')
+          break
+        case 'difficulty':
+          setQuizConfig(prev => ({ ...prev, difficulty: processedInput }))
+          setConversationStep('questions')
+          break
+        case 'questions':
+          setQuizConfig(prev => ({ ...prev, questionCount: parseInt(processedInput) }))
+          setConversationStep('generating')
+          setTimeout(() => {
+            if (quizConfig.mode === 'solo') {
+              handleStartQuiz()
+            } else if (quizConfig.mode === 'multiplayer') {
+              setShowMultiplayer(true)
+            } else if (quizConfig.mode === 'gamble') {
+              setShowGamble(true)
+            }
+          }, 1500)
+          break
+      }
+    }, 800)
+    
+    setInputValue('')
+  }, [inputValue, conversationStep, isLoading, validateInput, processInput, getAIResponse, quizConfig.mode, handleStartQuiz])
+
+  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    setUploadedFile(file)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target?.result as string
+      setFileContent(text)
     }
-    
-    window.location.href = `/quiz?${params.toString()}`
+    reader.readAsText(file)
+  }, [])
+
+  const handleTopicSelect = useCallback((topic: string) => {
+    setInputValue(topic)
+    setTimeout(handleSendMessage, 100)
+  }, [handleSendMessage])
+
+  const handleOptionSelect = useCallback((value: string) => {
+    setInputValue(value)
+    handleSendMessage()
+  }, [handleSendMessage])
+
+  const renderSuggestedActions = () => {
+    const lastMessage = messages[messages.length - 1]
+    if (!lastMessage || lastMessage.type !== 'assistant') return null
+
+    switch (conversationStep) {
+      case 'mode':
+        return (
+          <div className="flex flex-wrap gap-2 max-w-md">
+            {MODE_OPTIONS.map((mode) => (
+              <button
+                key={mode.key}
+                onClick={() => handleOptionSelect(mode.key)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-blue-200 dark:border-blue-800"
+              >
+                {mode.emoji} {mode.name}
+                <div className="text-xs opacity-70">{mode.desc}</div>
+              </button>
+            ))}
+          </div>
+        )
+      
+      case 'difficulty':
+        return (
+          <div className="flex flex-wrap gap-2 max-w-md">
+            {DIFFICULTY_OPTIONS.map((diff) => (
+              <button
+                key={diff.name}
+                onClick={() => handleOptionSelect(diff.name.toLowerCase())}
+                className={`px-4 py-2 bg-${diff.color}-100 hover:bg-${diff.color}-200 dark:bg-${diff.color}-900/20 dark:hover:bg-${diff.color}-800/30 text-${diff.color}-800 dark:text-${diff.color}-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-${diff.color}-200 dark:border-${diff.color}-800`}
+              >
+                {diff.emoji} {diff.name} ({diff.points} points)
+              </button>
+            ))}
+          </div>
+        )
+      
+      case 'questions':
+        return (
+          <div className="flex flex-wrap gap-2 max-w-md">
+            {QUESTION_OPTIONS.map((item) => (
+              <button
+                key={item.count}
+                onClick={() => handleOptionSelect(item.count.toString())}
+                className="px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-blue-200 dark:border-blue-800"
+              >
+                {item.emoji} {item.count} questions
+              </button>
+            ))}
+          </div>
+        )
+      
+      default:
+        return null
+    }
+  }
+
+  const getPlaceholder = () => {
+    switch (conversationStep) {
+      case 'topic': return '🎯 Enter a subject like "Mathematics" or "History"...'
+      case 'mode': return '🎮 Type: solo, multiplayer, or gamble'
+      case 'difficulty': return '🎮 Type: easy, medium, or hard'
+      case 'questions': return '🔢 Enter number: 5-50 questions'
+      default: return '🚀 Generating your epic quiz...'
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        <header className="flex justify-between items-center mb-12">
-          <div className="flex items-center gap-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Threevia</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <UserButton onLoginClick={() => setShowLogin(!showLogin)} />
-          </div>
-        </header>
-
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Generate AI Quizzes Instantly</h2>
-          <p className="text-gray-600 dark:text-gray-300">Choose a topic below and test your knowledge with AI-generated questions</p>
-        </div>
-
-        <div className="max-w-4xl mx-auto">
-          {/* Trending Topics */}
-          <div data-section="trending">
-            <TrendingTopics onTopicSelect={(topic) => {
-              setCustomTopic(topic)
-              setSelectedCategory('')
-            }} />
-          </div>
-          
-          {/* Quick Categories */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4 dark:text-white">Educational Options</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {categories.map((category) => (
-                <button
-                  key={category.name}
-                  onClick={() => {
-                    setSelectedCategory(category.name)
-                    setCustomTopic('')
-                  }}
-                  className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
-                    selectedCategory === category.name
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-2xl">{category.icon}</span>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${category.color}`}>
-                      {category.name}
-                    </span>
-                  </div>
-                </button>
-              ))}
+    <div className="min-h-screen bg-white dark:bg-slate-900 flex flex-col">
+      <Navbar />
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4">
+        
+        <div className="flex-1 flex flex-col justify-center py-8">
+          {messages.length === 0 ? (
+            <div className="text-center mb-8">
+              <div className="mb-6">
+                <div className="text-6xl mb-4">🧠⚡</div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4">
+                  Ready to Level Up Your Brain?
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400 text-lg">Choose a topic or type your own! 🚀</p>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 max-w-2xl mx-auto">
+                {TOPIC_SUGGESTIONS.map((topic) => (
+                  <button
+                    key={topic}
+                    onClick={() => handleTopicSelect(topic)}
+                    className="px-4 py-3 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20 hover:from-blue-200 hover:to-cyan-200 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-blue-200 dark:border-blue-800"
+                  >
+                    {topic}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-center space-x-4 text-sm text-slate-500 dark:text-slate-400">
+                <span className="flex items-center">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full mr-1"></span>Easy: 2x Points
+                </span>
+                <span className="flex items-center">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>Medium: 3x Points
+                </span>
+                <span className="flex items-center">
+                  <span className="w-2 h-2 bg-cyan-500 rounded-full mr-1"></span>Hard: 5x Points
+                </span>
+              </div>
             </div>
-          </div>
-
-          {/* Custom Topic */}
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="custom-topic">Or Enter Any Topic</Label>
-                  <Input
-                    id="custom-topic"
-                    placeholder="e.g., Space Travel, Cooking, Movies, Programming..."
-                    value={customTopic}
-                    onChange={(e) => {
-                      setCustomTopic(e.target.value)
-                      setSelectedCategory('')
-                    }}
-                    className="text-lg p-4 h-12"
-                    autoFocus
-                  />
+          ) : (
+            <div className="space-y-4 mb-8">
+              {messages.map((message, index) => (
+                <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className="space-y-3">
+                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      message.type === 'user' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
+                    }`}>
+                      <p className="whitespace-pre-line">{message.content}</p>
+                    </div>
+                    {index === messages.length - 1 && renderSuggestedActions()}
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Difficulty</Label>
-                    <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg relative">
-                      {[{id: 'easy', label: 'Easy', icon: '🟢'}, {id: 'medium', label: 'Medium', icon: '🟡'}, {id: 'hard', label: 'Hard', icon: '🔴'}].map((diff) => (
-                        <div key={diff.id} className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setDifficulty(diff.id)}
-                            onTouchStart={() => setShowTooltip(diff.id)}
-                            onTouchEnd={() => setTimeout(() => setShowTooltip(null), 1000)}
-                            title={diff.label}
-                            className={`w-full px-2 py-2 text-xs sm:text-sm rounded-md transition-all truncate ${
-                              difficulty === diff.id
-                                ? 'bg-white dark:bg-gray-700 shadow-sm font-medium'
-                                : 'hover:bg-white/50 dark:hover:bg-gray-700/50'
-                            }`}
-                          >
-                            <span className="block sm:inline">{diff.icon}</span>
-                            <span className="hidden sm:inline ml-1">{diff.label}</span>
-                          </button>
-                          {showTooltip === diff.id && (
-                            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10 sm:hidden">
-                              {diff.label}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+              ))}
+              
+              {conversationStep === 'generating' && (
+                <div className="flex justify-start">
+                  <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-pulse flex space-x-1">
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      </div>
+                      <span className="text-sm">🧠 Crafting your challenge...</span>
                     </div>
                   </div>
-                  <div>
-                    <Label>Questions</Label>
-                    <Input
-                      type="number"
-                      value={questionCount === 0 ? '' : questionCount}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        if (value === '') {
-                          setQuestionCount(0)
-                        } else {
-                          const num = parseInt(value)
-                          if (!isNaN(num)) {
-                            setQuestionCount(Math.min(50, num))
-                          }
-                        }
-                      }}
-                      placeholder="Max 50"
-                    />
-                  </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    onClick={handleStartQuiz}
-                    className="h-12 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                    disabled={!customTopic && !selectedCategory && !fileContent || startingQuiz}
-                  >
-                    {startingQuiz ? '⏳ Starting...' : '🚀 Solo Quiz'}
-                  </Button>
-                  <Button 
-                    onClick={() => setShowMultiplayer(true)}
-                    className="h-12 text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                    disabled={!customTopic && !selectedCategory && !fileContent}
-                  >
-                    🎮 Multiplayer
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* File Upload */}
-          <Card className="mb-6" data-section="upload">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <Label>Or Upload Your Own Content</Label>
-                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Upload a text file (.txt, .md) to generate questions from your content
-                  </p>
-                  <input
-                    type="file"
-                    accept=".txt,.md"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <Button 
-                    variant="outline" 
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                    type="button"
-                  >
-                    Choose File
-                  </Button>
-                  {uploadedFile && (
-                    <p className="text-sm text-green-600 mt-2">
-                      ✅ {uploadedFile.name} uploaded ({Math.round(fileContent.length / 1000)}k chars)
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Login Modal */}
-          <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
-          
-          {/* Multiplayer Modal */}
-          <MultiplayerModal 
-            open={showMultiplayer} 
-            onClose={() => setShowMultiplayer(false)}
-            topic={customTopic || selectedCategory || 'General Knowledge'}
-            difficulty={difficulty}
-            questionCount={questionCount}
-          />
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="text-center mt-12 text-gray-500">
-          <p className="text-sm">
-            ✨ Powered by AI • 🆓 Completely Free • ⚡ Instant Generation • ❤️ Made with love by{' '}
-            <a 
-              href="https://gigme.space" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline transition-colors"
-            >
-              gigme
-            </a>
-          </p>
+        <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 p-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="relative">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder={getPlaceholder()}
+                disabled={conversationStep === 'generating' || isLoading}
+                className="w-full px-4 py-3 pr-20 text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500 disabled:opacity-50"
+              />
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                <button
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                  className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                  title="Upload file"
+                  disabled={isLoading}
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || conversationStep === 'generating' || isLoading}
+                  className="p-2 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 dark:disabled:bg-slate-600 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              <input
+                type="file"
+                accept=".txt,.md"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload"
+              />
+            </div>
+            {uploadedFile && (
+              <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                ✓ {uploadedFile.name} uploaded
+              </p>
+            )}
+          </div>
         </div>
+
+        <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
+        
+        <MultiplayerModal 
+          open={showMultiplayer} 
+          onClose={() => setShowMultiplayer(false)}
+          topic={quizConfig.topic}
+          difficulty={quizConfig.difficulty}
+          questionCount={quizConfig.questionCount}
+        />
+        
+        <GambleModal 
+          open={showGamble} 
+          onClose={() => setShowGamble(false)}
+          topic={quizConfig.topic}
+          difficulty={quizConfig.difficulty}
+          questionCount={quizConfig.questionCount}
+        />
       </div>
+      
+      <WelcomeDialog />
     </div>
   )
 }

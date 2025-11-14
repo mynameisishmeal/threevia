@@ -106,14 +106,14 @@ export default function MultiplayerQuiz({ room, playerName, roomCode, isSpectato
     return (
       <div className="mt-6">
         <div className="text-center mb-6">
-          <Trophy className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
+          <Trophy className="h-12 w-12 text-blue-500 mx-auto mb-2" />
           <h2 className="text-2xl font-bold">Quiz Complete!</h2>
         </div>
         
         <div className="space-y-3">
           {sortedPlayers.map((player: any, index: number) => (
             <div key={player.name} className={`flex items-center justify-between p-4 rounded-lg ${
-              index === 0 ? 'bg-yellow-100 border-2 border-yellow-400' :
+              index === 0 ? 'bg-blue-100 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-600' :
               index === 1 ? 'bg-gray-100 border-2 border-gray-400' :
               index === 2 ? 'bg-orange-100 border-2 border-orange-400' :
               'bg-gray-50'
@@ -122,7 +122,7 @@ export default function MultiplayerQuiz({ room, playerName, roomCode, isSpectato
                 <div className="text-2xl">
                   {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
                 </div>
-                <span className={`font-medium ${player.name === playerName ? 'text-purple-600' : ''}`}>
+                <span className={`font-medium ${player.name === playerName ? 'text-cyan-600' : ''}`}>
                   {player.name}
                 </span>
               </div>
@@ -180,7 +180,7 @@ export default function MultiplayerQuiz({ room, playerName, roomCode, isSpectato
                         ? 'border-red-500 bg-red-50'
                         : 'border-gray-200 opacity-60'
                       : isSelected
-                      ? 'border-purple-500 bg-purple-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : isSpectator
                       ? 'border-gray-200 cursor-default'
                       : 'border-gray-200 hover:border-gray-300'
@@ -240,7 +240,7 @@ export default function MultiplayerQuiz({ room, playerName, roomCode, isSpectato
           <div className="space-y-2">
             {[...room.players].sort((a: any, b: any) => b.score - a.score).map((player: any, index: number) => (
               <div key={player.name} className="flex items-center justify-between">
-                <span className={`${player.name === playerName ? 'font-bold text-purple-600' : ''}`}>
+                <span className={`${player.name === playerName ? 'font-bold text-cyan-600' : ''}`}>
                   #{index + 1} {player.name}
                 </span>
                 <span className="font-semibold">{player.score} pts</span>

@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server'
 import { getDatabase } from '@/lib/auth-utils'
+import jwt from 'jsonwebtoken'
 
 export async function POST(req: Request) {
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const token = authHeader.substring(7)
+    let decoded
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string, email: string }
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
     const { hostName, topic, difficulty, questionCount, isPrivate = false } = await req.json()
     const db = await getDatabase()
     
@@ -10,6 +25,7 @@ export async function POST(req: Request) {
     
     const room = {
       roomCode,
+      hostId: decoded.userId,
       hostName,
       topic,
       difficulty,

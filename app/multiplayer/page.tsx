@@ -103,7 +103,7 @@ export default function MultiplayerPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 flex items-center justify-center">
         <div className="text-center">
-          <Brain className="h-12 w-12 animate-pulse text-purple-600 mx-auto mb-4" />
+          <Brain className="h-12 w-12 animate-pulse text-cyan-600 mx-auto mb-4" />
           <div className="text-xl font-semibold">Loading room...</div>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function MultiplayerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-blue-100">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-6">
@@ -157,7 +157,7 @@ export default function MultiplayerPage() {
               )}
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">Room: {roomCode}</div>
+              <div className="text-2xl font-bold text-cyan-600">Room: {roomCode}</div>
               <div className="text-sm text-gray-600">
                 {room.topic} • {room.difficulty}
                 {room.isPrivate && <span className="ml-2">🔒 Private</span>}
@@ -180,8 +180,8 @@ export default function MultiplayerPage() {
                 {room.players.map((player: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2">
-                      {player.name === room.hostName && <Crown className="h-4 w-4 text-yellow-500" />}
-                      <span className={`font-medium ${player.name === playerName ? 'text-purple-600' : ''}`}>
+                      {player.name === room.hostName && <Crown className="h-4 w-4 text-blue-500" />}
+                      <span className={`font-medium ${player.name === playerName ? 'text-cyan-600' : ''}`}>
                         {player.name} {player.name === playerName && '(You)'}
                       </span>
                     </div>
@@ -236,7 +236,7 @@ export default function MultiplayerPage() {
                       <Button 
                         onClick={startQuiz}
                         disabled={room.players.length < 2 || startingQuiz}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
+                        className="w-full bg-gradient-to-r from-cyan-600 to-blue-600"
                       >
                         {startingQuiz ? '⏳ Starting Quiz...' : `Start Quiz (${room.players.length} players)`}
                       </Button>

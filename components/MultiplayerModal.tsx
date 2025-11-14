@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuth } from '@/lib/auth'
+import LoginModal from '@/components/LoginModal'
 
 interface MultiplayerModalProps {
   open: boolean
@@ -15,32 +17,39 @@ interface MultiplayerModalProps {
 }
 
 export default function MultiplayerModal({ open, onClose, topic, difficulty, questionCount }: MultiplayerModalProps) {
+  const { user } = useAuth()
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu')
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [isPrivate, setIsPrivate] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
   const handleCreateRoom = async () => {
-    if (!playerName.trim()) return
+    if (!user) return
     setLoading(true)
-    
+
     try {
       const response = await fetch('/api/multiplayer/create-room', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
         body: JSON.stringify({
-          hostName: playerName,
+          hostName: user.email,
           topic,
           difficulty,
           questionCount,
           isPrivate
         })
       })
-      
+
       const data = await response.json()
       if (data.roomCode) {
-        window.location.href = `/multiplayer?room=${data.roomCode}&player=${playerName}`
+        window.location.href = `/multiplayer?room=${data.roomCode}&player=${user.email}`
+      } else {
+        alert(data.error || 'Failed to create room')
       }
     } catch (error) {
       alert('Failed to create room')
@@ -90,8 +99,17 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
               Quiz: <strong>{topic}</strong> • {difficulty} • {questionCount} questions
             </div>
             <div className="space-y-2">
-              <Button onClick={() => setMode('create')} className="w-full">
-                Create Room
+              <Button
+                onClick={() => {
+                  if (user) {
+                    setMode('create')
+                  } else {
+                    setShowLogin(true)
+                  }
+                }}
+                className="w-full"
+              >
+                Create Room {user ? '' : '(Login Required)'}
               </Button>
               <Button onClick={() => setMode('join')} variant="outline" className="w-full">
                 Join with Code
@@ -105,14 +123,8 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
         
         {mode === 'create' && (
           <div className="space-y-4">
-            <div>
-              <Label>Your Name</Label>
-              <Input
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Enter your name"
-                maxLength={20}
-              />
+            <div className="text-sm text-gray-600">
+              Creating room as: <strong>{user?.email}</strong>
             </div>
             <div className="flex items-center space-x-2">
               <input
@@ -130,7 +142,7 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
               <Button onClick={() => setMode('menu')} variant="outline" className="flex-1">
                 Back
               </Button>
-              <Button onClick={handleCreateRoom} disabled={loading || !playerName.trim()} className="flex-1">
+              <Button onClick={handleCreateRoom} disabled={loading} className="flex-1">
                 {loading ? 'Creating...' : 'Create Room'}
               </Button>
             </div>
@@ -165,6 +177,9 @@ export default function MultiplayerModal({ open, onClose, topic, difficulty, que
           </div>
         )}
       </DialogContent>
+
+      {/* Login Modal */}
+      <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
     </Dialog>
   )
 }

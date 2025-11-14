@@ -1,14 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Brain, Clock, Trophy, ArrowLeft } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Brain, Clock, Trophy, ArrowLeft, Zap, Target, Star } from 'lucide-react'
 import QuizResults from '@/components/QuizResults'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Progress } from '@/components/ui/progress'
-import ResumeQuizDialog from '@/components/ResumeQuizDialog'
 
 interface Question {
   question: string
@@ -16,500 +11,495 @@ interface Question {
   correct: number
 }
 
+interface QuizState {
+  questions: Question[]
+  currentQuestion: number
+  selectedAnswer: number | null
+  score: number
+  showResult: boolean
+  loading: boolean
+  timeLeft: number
+  showAnswer: boolean
+  isCorrect: boolean
+  aiResponse: string
+  streak: number
+  totalPoints: number
+  error: string | null
+}
+
+const INITIAL_STATE: QuizState = {
+  questions: [],
+  currentQuestion: 0,
+  selectedAnswer: null,
+  score: 0,
+  showResult: false,
+  loading: true,
+  timeLeft: 30,
+  showAnswer: false,
+  isCorrect: false,
+  aiResponse: '',
+  streak: 0,
+  totalPoints: 0,
+  error: null
+}
+
 export default function QuizPage() {
   const searchParams = useSearchParams()
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
-  const [score, setScore] = useState(0)
-  const [showResult, setShowResult] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [timeLeft, setTimeLeft] = useState(30)
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [isCorrect, setIsCorrect] = useState(false)
-  const [showResumeDialog, setShowResumeDialog] = useState(false)
-  const [savedProgress, setSavedProgress] = useState<any>(null)
-  const [submittingAnswer, setSubmittingAnswer] = useState(false)
+  const router = useRouter()
+  const [state, setState] = useState<QuizState>(INITIAL_STATE)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const isSubmittingRef = useRef(false)
 
   const topic = searchParams.get('topic') || 'General Knowledge'
   const difficulty = searchParams.get('difficulty') || 'medium'
   const count = parseInt(searchParams.get('count') || '10')
-  const sourceText = searchParams.get('sourceText') || ''
 
-  useEffect(() => {
-    generateQuiz()
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
   }, [])
 
-  useEffect(() => {
-    if (loading || showResult) return
+  const startTimer = useCallback(() => {
+    clearTimer()
+    setState(prev => ({ ...prev, timeLeft: 30 }))
     
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (!showAnswer) {
-            // Time ran out - deduct points and auto-submit
-            setIsCorrect(false)
-            setShowAnswer(true)
-            // Deduct 5 points for timeout
-            setScore(Math.max(0, score - 0.5))
-          }
-          return 0
+    timerRef.current = setInterval(() => {
+      setState(prev => {
+        if (prev.showAnswer || prev.loading || prev.showResult || isSubmittingRef.current) {
+          return prev
         }
-        return prev - 1
+        
+        if (prev.timeLeft <= 1) {
+          // Time's up - auto submit
+          setTimeout(() => handleTimeUp(), 0)
+          return { ...prev, timeLeft: 0 }
+        }
+        
+        return { ...prev, timeLeft: prev.timeLeft - 1 }
       })
     }, 1000)
+  }, [])
 
-    return () => clearInterval(timer)
-  }, [currentQuestion, loading, showResult])
+  const generateQuiz = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }))
+      
+      const response = await fetch('/api/generate-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, difficulty, count })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to generate quiz: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
+      if (!data.questions || data.questions.length === 0) {
+        throw new Error('No questions received from API')
+      }
+      
+      setState(prev => ({ 
+        ...prev, 
+        questions: data.questions, 
+        loading: false 
+      }))
+      
+      startTimer()
+    } catch (error) {
+      console.error('Quiz generation error:', error)
+      setState(prev => ({ 
+        ...prev, 
+        loading: false, 
+        error: error instanceof Error ? error.message : 'Failed to generate quiz'
+      }))
+    }
+  }, [topic, difficulty, count, startTimer])
+
+  const getAIResponse = useCallback(async (correct: boolean, points: number, correctAnswer: string) => {
+    try {
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: correct ? 'correct' : 'wrong',
+          data: { points, correct: correctAnswer }
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        return data.response
+      }
+    } catch (error) {
+      console.error('AI response error:', error)
+    }
+    
+    return correct ? '🎉 Correct!' : '❌ Wrong answer!'
+  }, [])
+
+  const calculatePoints = useCallback((timeLeft: number, streak: number, difficulty: string) => {
+    const basePoints = difficulty === 'easy' ? 10 : difficulty === 'medium' ? 15 : 20
+    const speedBonus = Math.floor((timeLeft / 30) * 10)
+    const streakBonus = streak * 5
+    return basePoints + speedBonus + streakBonus
+  }, [])
+
+  const handleTimeUp = useCallback(() => {
+    if (isSubmittingRef.current || state.showAnswer) return
+    
+    isSubmittingRef.current = true
+    clearTimer()
+    
+    setState(prev => ({
+      ...prev,
+      isCorrect: false,
+      showAnswer: true,
+      streak: 0,
+      aiResponse: '⏰ Time\'s up! No points this round.'
+    }))
+    
+    setTimeout(() => {
+      handleNextQuestion()
+      isSubmittingRef.current = false
+    }, 3000)
+  }, [state.showAnswer])
+
+  const handleAnswerSelect = useCallback((answerIndex: number) => {
+    if (state.showAnswer || isSubmittingRef.current) return
+    setState(prev => ({ ...prev, selectedAnswer: answerIndex }))
+  }, [state.showAnswer])
+
+  const handleSubmitAnswer = useCallback(async () => {
+    if (state.selectedAnswer === null || isSubmittingRef.current || state.showAnswer) return
+    
+    isSubmittingRef.current = true
+    clearTimer()
+    
+    const currentQuestion = state.questions[state.currentQuestion]
+    const correct = state.selectedAnswer === currentQuestion.correct
+    
+    let points = 0
+    let newScore = state.score
+    let newTotalPoints = state.totalPoints
+    let newStreak = state.streak
+    
+    if (correct) {
+      points = calculatePoints(state.timeLeft, state.streak, difficulty)
+      newScore = state.score + 1
+      newTotalPoints = state.totalPoints + points
+      newStreak = state.streak + 1
+    } else {
+      newStreak = 0
+    }
+    
+    setState(prev => ({
+      ...prev,
+      isCorrect: correct,
+      showAnswer: true,
+      score: newScore,
+      totalPoints: newTotalPoints,
+      streak: newStreak
+    }))
+    
+    // Get AI response
+    const aiResponse = await getAIResponse(correct, points, currentQuestion.options[currentQuestion.correct])
+    setState(prev => ({ ...prev, aiResponse }))
+    
+    setTimeout(() => {
+      handleNextQuestion()
+      isSubmittingRef.current = false
+    }, 3000)
+  }, [state, clearTimer, calculatePoints, difficulty, getAIResponse])
+
+  const handleNextQuestion = useCallback(() => {
+    if (state.currentQuestion + 1 < state.questions.length) {
+      setState(prev => ({
+        ...prev,
+        currentQuestion: prev.currentQuestion + 1,
+        selectedAnswer: null,
+        showAnswer: false,
+        isCorrect: false,
+        aiResponse: ''
+      }))
+      startTimer()
+    } else {
+      setState(prev => ({ ...prev, showResult: true }))
+      clearTimer()
+    }
+  }, [state.currentQuestion, state.questions.length, startTimer, clearTimer])
+
+  const handleExit = useCallback(() => {
+    clearTimer()
+    router.push('/')
+  }, [clearTimer, router])
+
+  const handleTryAgain = useCallback(() => {
+    setState(INITIAL_STATE)
+    generateQuiz()
+  }, [generateQuiz])
+
+  // Initialize quiz
+  useEffect(() => {
+    generateQuiz()
+    return () => clearTimer()
+  }, [generateQuiz, clearTimer])
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (showAnswer || loading || showResult) return
+      if (state.showAnswer || state.loading || state.showResult || isSubmittingRef.current) return
       
-      const question = questions[currentQuestion]
+      const question = state.questions[state.currentQuestion]
       if (!question) return
       
-      // Arrow keys to select answers
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault()
         const direction = e.key === 'ArrowUp' ? -1 : 1
-        const currentIndex = selectedAnswer ?? -1
+        const currentIndex = state.selectedAnswer ?? -1
         const newIndex = Math.max(0, Math.min(3, currentIndex + direction))
-        setSelectedAnswer(newIndex)
+        handleAnswerSelect(newIndex)
       }
       
-      // Number keys 1-4 to select answers
       if (['1', '2', '3', '4'].includes(e.key)) {
         const index = parseInt(e.key) - 1
-        setSelectedAnswer(index)
+        if (index < question.options.length) {
+          handleAnswerSelect(index)
+        }
       }
       
-      // Enter to submit
-      if (e.key === 'Enter' && selectedAnswer !== null) {
+      if (e.key === 'Enter' && state.selectedAnswer !== null) {
         handleSubmitAnswer()
       }
     }
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedAnswer, showAnswer, loading, showResult, currentQuestion, questions])
+  }, [state, handleAnswerSelect, handleSubmitAnswer])
 
-  const [modelUsed, setModelUsed] = useState('')
-
-  const generateQuiz = async () => {
-    try {
-      console.log('🔍 DEBUG: Starting generateQuiz function')
-      
-      // Check for saved progress first
-      const progressResponse = await fetch('/api/load-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId: localStorage.getItem('auth-token') ? 'user' : null, 
-          topic, 
-          difficulty 
-        })
-      })
-      
-      const progressData = await progressResponse.json()
-      console.log('🔍 DEBUG: Progress data:', progressData)
-      
-      if (progressData.found) {
-        console.log('🔍 DEBUG: Found saved progress, showing dialog')
-        setSavedProgress(progressData)
-        setShowResumeDialog(true)
-        // Don't set loading to false here - let the dialog handle it
-        return
-      }
-      
-      console.log('🔍 DEBUG: Starting quiz generation for:', { topic, difficulty, count })
-      const response = await fetch('/api/generate-quiz', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, difficulty, count, sourceText })
-      })
-      
-      console.log('🔍 DEBUG: API response status:', response.status)
-      if (!response.ok) {
-        console.error('🔍 DEBUG: API response not ok:', response.statusText)
-        throw new Error(`API returned ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      console.log('🔍 DEBUG: API response data:', data)
-      
-      if (data.error) {
-        console.error('❌ DEBUG: API returned error:', data.error)
-        console.log('🔍 DEBUG: Full debug info:', data.debug)
-        alert(`AI Generation Failed: ${data.error}\n\nCheck console for details.`)
-        setLoading(false)
-        return
-      }
-      
-      if (data.questions && data.questions.length > 0) {
-        setQuestions(data.questions)
-        setModelUsed(data.modelUsed || 'Unknown')
-        console.log('✅ DEBUG: Successfully loaded', data.questions.length, 'questions')
-      } else {
-        console.error('❌ DEBUG: No questions in response')
-        alert('No questions received from API')
-      }
-      
-      setLoading(false)
-    } catch (error) {
-      console.error('❌ DEBUG: Client error:', error)
-      alert(`Client Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      setLoading(false)
-    }
-  }
-
-  const handleAnswerSelect = (answerIndex: number) => {
-    if (showAnswer) return // Prevent changing answer after submission
-    setSelectedAnswer(answerIndex)
-  }
-
-  const handleSubmitAnswer = () => {
-    if (selectedAnswer === null) return
-    
-    setSubmittingAnswer(true)
-    const correct = selectedAnswer === questions[currentQuestion]?.correct
-    setIsCorrect(correct)
-    setShowAnswer(true)
-    
-    if (correct) {
-      setScore(score + 1)
-    }
-    
-    // Auto-advance after 3 seconds
-    setTimeout(() => {
-      handleNextQuestion()
-      setSubmittingAnswer(false)
-    }, 3000)
-  }
-
-  const handleNextQuestion = () => {
-    if (currentQuestion + 1 < questions.length) {
-      const newQuestion = currentQuestion + 1
-      setCurrentQuestion(newQuestion)
-      setSelectedAnswer(null)
-      setShowAnswer(false)
-      setIsCorrect(false)
-      setTimeLeft(30)
-      
-      // Auto-save progress
-      saveProgress(newQuestion, score)
-    } else {
-      setShowResult(true)
-      // Clear saved progress when quiz is complete
-      clearProgress()
-    }
-  }
-  
-  const saveProgress = async (question: number, currentScore: number) => {
-    try {
-      await fetch('/api/save-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: localStorage.getItem('auth-token') ? 'user' : null,
-          topic,
-          difficulty,
-          currentQuestion: question,
-          score: currentScore,
-          questions
-        })
-      })
-    } catch (error) {
-      console.error('Failed to save progress:', error)
-    }
-  }
-  
-  const clearProgress = async () => {
-    try {
-      await fetch('/api/save-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: localStorage.getItem('auth-token') ? 'user' : null,
-          topic,
-          difficulty,
-          currentQuestion: -1, // Mark as completed
-          score: 0,
-          questions: []
-        })
-      })
-    } catch (error) {
-      console.error('Failed to clear progress:', error)
-    }
-  }
-
-  const resetQuiz = () => {
-    setCurrentQuestion(0)
-    setSelectedAnswer(null)
-    setScore(0)
-    setShowResult(false)
-    setShowAnswer(false)
-    setIsCorrect(false)
-    setTimeLeft(30)
-  }
-
-  const handleResumeQuiz = () => {
-    if (savedProgress) {
-      setQuestions(savedProgress.questions)
-      setCurrentQuestion(savedProgress.currentQuestion)
-      setScore(savedProgress.score)
-      setModelUsed('Resumed')
-      setLoading(false)
-      setShowResumeDialog(false)
-      return // Important: prevent generateQuiz from running
-    }
-    setShowResumeDialog(false)
-  }
-
-  const handleStartNewQuiz = () => {
-    setShowResumeDialog(false)
-    setSavedProgress(null) // Clear saved progress
-    generateNewQuiz() // Generate fresh quiz
-  }
-
-  const generateNewQuiz = async () => {
-    try {
-      console.log('🔍 DEBUG: Starting quiz generation for:', { topic, difficulty, count })
-      const response = await fetch('/api/generate-quiz', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, difficulty, count, sourceText })
-      })
-      
-      const data = await response.json()
-      
-      if (data.error) {
-        alert(`AI Generation Failed: ${data.error}`)
-        setLoading(false)
-        return
-      }
-      
-      if (data.questions && data.questions.length > 0) {
-        setQuestions(data.questions)
-        setModelUsed(data.modelUsed || 'Unknown')
-      }
-      
-      setLoading(false)
-    } catch (error) {
-      alert(`Client Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (state.loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-center space-x-2 mb-4">
-                  <Brain className="h-8 w-8 animate-pulse text-blue-600" />
-                  <span className="text-xl font-semibold">Generating your quiz...</span>
-                </div>
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-3/4 mx-auto" />
-                  <Skeleton className="h-4 w-1/2 mx-auto" />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Skeleton className="h-16 w-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-                <Skeleton className="h-12 w-full" />
-              </CardContent>
-            </Card>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative mb-8">
+            <Brain className="h-20 w-20 text-blue-400 mx-auto animate-pulse" />
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-cyan-400 rounded-full animate-bounce"></div>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-4">🧠 AI is crafting your challenge...</h1>
+          <div className="flex justify-center space-x-1">
+            <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+            <div className="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
           </div>
         </div>
-        
-        <ResumeQuizDialog
-          open={showResumeDialog}
-          onResume={handleResumeQuiz}
-          onStartNew={handleStartNewQuiz}
-          savedAt={savedProgress?.lastSaved || ''}
-          topic={topic}
-          progress={savedProgress ? `${savedProgress.currentQuestion + 1}/${savedProgress.questions.length}` : ''}
-        />
       </div>
     )
   }
 
-  if (showResult) {
-    return <QuizResults 
-      score={score} 
-      totalQuestions={questions.length} 
-      topic={topic}
-      difficulty={difficulty}
-      onTryAgain={resetQuiz}
-      onNewQuiz={() => window.location.href = '/'}
-    />
-  }
-
-  const question = questions[currentQuestion]
-  if (!question) return null
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <Button variant="outline" onClick={() => window.location.href = '/'}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4" />
-                <span className={`font-mono ${timeLeft <= 10 ? 'text-red-500' : ''}`}>
-                  {timeLeft}s
-                </span>
-              </div>
-              <div className="text-sm text-gray-600">
-                {currentQuestion + 1} / {questions.length || count}
-              </div>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">
-                  Question {currentQuestion + 1}
-                </CardTitle>
-                <div className="text-xs text-gray-500">
-                  <div>Topic: {topic}</div>
-                  <div>AI: {modelUsed}</div>
-                  {sourceText && <div>📄 From uploaded file</div>}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-lg sm:text-xl font-medium break-words">
-                {question.question}
-              </div>
-
-              <div className="space-y-3">
-                {question.options.map((option, index) => {
-                  const isSelected = selectedAnswer === index
-                  const isCorrect = index === question.correct
-                  const isWrong = showAnswer && isSelected && !isCorrect
-                  
-                  let buttonClass = 'w-full p-4 text-left rounded-lg border-2 transition-all duration-300 '
-                  
-                  if (showAnswer) {
-                    if (isCorrect) {
-                      buttonClass += 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                    } else if (isWrong) {
-                      buttonClass += 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    } else {
-                      buttonClass += 'border-gray-200 dark:border-gray-700 opacity-60'
-                    }
-                  } else {
-                    buttonClass += isSelected
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }
-                  
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(index)}
-                      className={buttonClass}
-                      disabled={showAnswer}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          showAnswer
-                            ? isCorrect
-                              ? 'border-green-500 bg-green-500 text-white'
-                              : isWrong
-                              ? 'border-red-500 bg-red-500 text-white'
-                              : 'border-gray-300 dark:border-gray-600'
-                            : isSelected
-                            ? 'border-blue-500 bg-blue-500 text-white'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}>
-                          {showAnswer && isCorrect ? '✓' : showAnswer && isWrong ? '✗' : String.fromCharCode(65 + index)}
-                        </div>
-                        <span className={showAnswer && isCorrect ? 'font-semibold' : ''}>{option}</span>
-                        {showAnswer && isCorrect && (
-                          <span className="ml-auto text-green-600 font-semibold">Correct!</span>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {!showAnswer ? (
-                <Button 
-                  onClick={handleSubmitAnswer}
-                  disabled={selectedAnswer === null || submittingAnswer}
-                  className="w-full"
-                >
-                  {submittingAnswer ? '⏳ Submitting...' : 'Submit Answer'}
-                </Button>
-              ) : (
-                <div className="space-y-3">
-                  <div className={`p-3 rounded-lg text-center font-semibold ${
-                    isCorrect 
-                      ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
-                      : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200'
-                  }`}>
-                    {isCorrect ? '🎉 Correct!' : timeLeft === 0 && selectedAnswer === null ? '⏰ Time\'s Up!' : '❌ Incorrect'}
-                    {!isCorrect && (
-                      <div className="text-sm mt-1 font-normal">
-                        {timeLeft === 0 && selectedAnswer === null && (
-                          <div className="text-orange-600 dark:text-orange-400 mb-1">-0.5 points for timeout</div>
-                        )}
-                        The correct answer was: <strong>{question.options[question.correct]}</strong>
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-gray-600 mb-2">
-                      Next question in 3 seconds...
-                    </div>
-                    <Button 
-                      onClick={handleNextQuestion}
-                      className="w-full"
-                    >
-                      {currentQuestion + 1 === questions.length ? 'Finish Quiz' : 'Next Question'} (or wait)
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg p-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Progress</span>
-              <span className="text-sm font-medium">{currentQuestion + 1} / {questions.length || count}</span>
-            </div>
-            <Progress value={((currentQuestion + 1) / (questions.length || count)) * 100} className="h-3" />
+  if (state.error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 flex items-center justify-center">
+        <div className="text-center text-white max-w-md">
+          <div className="text-6xl mb-4">😞</div>
+          <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong</h1>
+          <p className="text-lg mb-6 opacity-80">{state.error}</p>
+          <div className="space-x-4">
+            <button 
+              onClick={handleTryAgain}
+              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+            <button 
+              onClick={handleExit}
+              className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors"
+            >
+              Go Home
+            </button>
           </div>
         </div>
       </div>
-      
-      <ResumeQuizDialog
-        open={showResumeDialog}
-        onResume={handleResumeQuiz}
-        onStartNew={handleStartNewQuiz}
-        savedAt={savedProgress?.lastSaved || ''}
+    )
+  }
+
+  if (state.showResult) {
+    return (
+      <QuizResults 
+        score={state.score} 
+        totalQuestions={state.questions.length} 
         topic={topic}
-        progress={savedProgress ? `${savedProgress.currentQuestion + 1}/${savedProgress.questions.length}` : ''}
+        difficulty={difficulty}
+        onTryAgain={handleTryAgain}
+        onNewQuiz={handleExit}
       />
+    )
+  }
+
+  const question = state.questions[state.currentQuestion]
+  if (!question) return null
+
+  const progress = ((state.currentQuestion + 1) / state.questions.length) * 100
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 text-white">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6">
+        <button 
+          onClick={handleExit}
+          className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all"
+          aria-label="Exit quiz"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Exit</span>
+        </button>
+        
+        <div className="flex items-center space-x-6">
+          {/* Streak */}
+          <div className="flex items-center space-x-2 bg-orange-500/20 px-4 py-2 rounded-xl">
+            <Zap className="h-5 w-5 text-orange-400" />
+            <span className="font-bold">{state.streak}x</span>
+          </div>
+          
+          {/* Points */}
+          <div className="flex items-center space-x-2 bg-cyan-500/20 px-4 py-2 rounded-xl">
+            <Star className="h-5 w-5 text-cyan-400" />
+            <span className="font-bold">{state.totalPoints}</span>
+          </div>
+          
+          {/* Timer */}
+          <div className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${
+            state.timeLeft <= 10 ? 'bg-red-500/20 animate-pulse' : 'bg-blue-500/20'
+          }`}>
+            <Clock className="h-5 w-5" />
+            <span className="font-mono font-bold text-xl">{state.timeLeft}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="px-6 mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm opacity-80">Question {state.currentQuestion + 1} of {state.questions.length}</span>
+          <span className="text-sm opacity-80">{Math.round(progress)}% Complete</span>
+        </div>
+        <div className="w-full bg-white/10 rounded-full h-3">
+          <div 
+            className="bg-gradient-to-r from-blue-400 to-cyan-400 h-3 rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="px-6 max-w-4xl mx-auto">
+        {/* Question */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center space-x-2 bg-white/10 px-4 py-2 rounded-full mb-6">
+            <Target className="h-4 w-4 text-blue-400" />
+            <span className="text-sm font-medium">{topic} • {difficulty.toUpperCase()}</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold leading-tight">{question.question}</h1>
+        </div>
+
+        {/* Answer Options */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {question.options.map((option, index) => {
+            const isSelected = state.selectedAnswer === index
+            const isCorrect = index === question.correct
+            const isWrong = state.showAnswer && isSelected && !isCorrect
+            
+            let buttonClass = 'group relative p-6 rounded-2xl border-2 transition-all duration-300 text-left '
+            
+            if (state.showAnswer) {
+              if (isCorrect) {
+                buttonClass += 'border-green-400 bg-green-500/20 shadow-lg shadow-green-500/25'
+              } else if (isWrong) {
+                buttonClass += 'border-red-400 bg-red-500/20 shadow-lg shadow-red-500/25'
+              } else {
+                buttonClass += 'border-white/20 bg-white/5 opacity-50'
+              }
+            } else {
+              buttonClass += isSelected
+                ? 'border-blue-400 bg-blue-500/20 shadow-lg shadow-blue-500/25 scale-105'
+                : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/15 hover:scale-102'
+            }
+            
+            return (
+              <button
+                key={index}
+                onClick={() => handleAnswerSelect(index)}
+                className={buttonClass}
+                disabled={state.showAnswer}
+                aria-label={`Option ${String.fromCharCode(65 + index)}: ${option}`}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all ${
+                    state.showAnswer
+                      ? isCorrect
+                        ? 'bg-green-500 text-white'
+                        : isWrong
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white/20 text-white/60'
+                      : isSelected
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white/20 text-white group-hover:bg-white/30'
+                  }`}>
+                    {state.showAnswer && isCorrect ? '✓' : state.showAnswer && isWrong ? '✗' : String.fromCharCode(65 + index)}
+                  </div>
+                  <span className="text-lg font-medium flex-1">{option}</span>
+                  {state.showAnswer && isCorrect && (
+                    <Trophy className="h-6 w-6 text-cyan-400" />
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Action Area */}
+        <div className="text-center">
+          {!state.showAnswer ? (
+            <button 
+              onClick={handleSubmitAnswer}
+              disabled={state.selectedAnswer === null || isSubmittingRef.current}
+              className="px-12 py-4 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 disabled:from-gray-500 disabled:to-gray-600 disabled:opacity-50 text-white font-bold text-xl rounded-2xl transition-all transform hover:scale-105 disabled:hover:scale-100 shadow-lg"
+            >
+              {state.selectedAnswer !== null ? '🚀 Submit Answer' : '👆 Select an answer'}
+            </button>
+          ) : (
+            <div className="space-y-6">
+              <div className={`p-6 rounded-2xl ${
+                state.isCorrect 
+                  ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30' 
+                  : 'bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-400/30'
+              }`}>
+                <div className="text-2xl font-bold mb-2">{state.aiResponse}</div>
+                {state.isCorrect && (
+                  <div className="text-lg opacity-90">
+                    +{difficulty === 'easy' ? 10 : difficulty === 'medium' ? 15 : 20} base points
+                    {state.timeLeft > 0 && ` + ${Math.floor((state.timeLeft / 30) * 10)} speed bonus`}
+                    {state.streak > 1 && ` + ${(state.streak - 1) * 5} streak bonus`}
+                  </div>
+                )}
+              </div>
+              
+              <button 
+                onClick={handleNextQuestion}
+                className="px-8 py-3 bg-white/20 hover:bg-white/30 text-white font-bold rounded-xl transition-all"
+              >
+                {state.currentQuestion + 1 === state.questions.length ? '🏁 Finish Quiz' : '➡️ Next Question'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

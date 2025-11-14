@@ -27,6 +27,8 @@ export default function QuizResults({
   const { user } = useAuth()
   const [points, setPoints] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
+  const [aiResponse, setAiResponse] = useState('')
+  const [showConfetti, setShowConfetti] = useState(false)
   
   const percentage = Math.round((score / totalQuestions) * 100)
 
@@ -34,7 +36,29 @@ export default function QuizResults({
     if (user) {
       saveScore()
     }
+    getAIResponse()
+    if (percentage >= 80) {
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 3000)
+    }
   }, [user])
+
+  const getAIResponse = async () => {
+    try {
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'encouragement',
+          data: { score, percentage, difficulty }
+        })
+      })
+      const data = await response.json()
+      setAiResponse(data.response)
+    } catch (error) {
+      console.error('Failed to get AI response:', error)
+    }
+  }
 
   const saveScore = async () => {
     if (!user || saving) return
@@ -69,28 +93,50 @@ export default function QuizResults({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <Trophy className="h-16 w-16 mx-auto mb-4 text-yellow-500" />
-          <CardTitle>Quiz Complete!</CardTitle>
+        <CardHeader className="text-center relative overflow-hidden">
+          {showConfetti && (
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="animate-bounce text-4xl absolute top-2 left-4">🎉</div>
+              <div className="animate-bounce text-3xl absolute top-8 right-6" style={{animationDelay: '0.2s'}}>⭐</div>
+              <div className="animate-bounce text-2xl absolute top-12 left-12" style={{animationDelay: '0.4s'}}>🏆</div>
+              <div className="animate-bounce text-3xl absolute top-4 right-12" style={{animationDelay: '0.6s'}}>💎</div>
+            </div>
+          )}
+          <div className={`${percentage >= 80 ? 'animate-pulse' : ''}`}>
+            <Trophy className={`h-16 w-16 mx-auto mb-4 ${
+              percentage >= 80 ? 'text-blue-400' : 
+              percentage >= 60 ? 'text-blue-500' : 'text-gray-400'
+            }`} />
+          </div>
+          <CardTitle className="text-2xl bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            {percentage >= 80 ? 'LEGENDARY!' : percentage >= 60 ? 'GREAT JOB!' : 'KEEP GRINDING!'}
+          </CardTitle>
         </CardHeader>
-        <CardContent className="text-center space-y-4">
-          <div className="text-4xl font-bold text-blue-600">
-            {score}/{totalQuestions}
+        <CardContent className="text-center space-y-6">
+          <div className="space-y-2">
+            <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              {score}/{totalQuestions}
+            </div>
+            <div className="text-2xl font-semibold">
+              {percentage}% Score
+            </div>
           </div>
-          <div className="text-xl">
-            {percentage}% Score
-          </div>
-          <div className="text-gray-600 dark:text-gray-300">
-            {percentage >= 80 ? 'Excellent!' : percentage >= 60 ? 'Good job!' : 'Keep practicing!'}
-          </div>
+          
+          {aiResponse && (
+            <div className="bg-gradient-to-r from-cyan-100 to-blue-100 dark:from-cyan-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
+              <div className="text-lg font-bold text-cyan-800 dark:text-cyan-200 animate-pulse">
+                {aiResponse}
+              </div>
+            </div>
+          )}
           
           {/* Points Display */}
           {user && points !== null && (
             <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <Star className="h-5 w-5 text-yellow-500" />
-                <span className="font-semibold text-green-800 dark:text-green-200">
-                  +{points} Points Earned!
+                <Star className="h-5 w-5 text-blue-500" />
+                <span className="font-bold text-xl text-green-800 dark:text-green-200">
+                  🎯 +{points} Points Earned!
                 </span>
               </div>
               <p className="text-xs text-green-600 dark:text-green-300">
@@ -104,8 +150,8 @@ export default function QuizResults({
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Award className="h-5 w-5 text-blue-600" />
-                <span className="font-semibold text-blue-800 dark:text-blue-200">
-                  Missed {Math.round(score * 10 * (difficulty === 'hard' ? 1.5 : difficulty === 'medium' ? 1.2 : 1))} Points!
+                <span className="font-bold text-xl text-blue-800 dark:text-blue-200">
+                  💰 Missed {Math.round(score * 10 * (difficulty === 'hard' ? 1.5 : difficulty === 'medium' ? 1.2 : 1))} Points!
                 </span>
               </div>
               <p className="text-xs text-blue-600 dark:text-blue-300 mb-2">
