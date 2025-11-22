@@ -77,9 +77,18 @@ export default function Navbar() {
             
             {user ? (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/20 px-3 py-1 rounded-full">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-bold text-green-800 dark:text-green-200">{user.email}</span>
+                <div className="flex items-center gap-2">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">{user.email[0].toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/20 px-3 py-1 rounded-full">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-bold text-green-800 dark:text-green-200">{user.email}</span>
+                  </div>
                 </div>
                 <button 
                   onClick={() => window.location.href = '/dashboard'}

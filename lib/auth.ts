@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 interface User {
   id: string
   email: string
+  avatar?: string
 }
 
 export function useAuth() {

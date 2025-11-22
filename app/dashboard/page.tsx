@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Trophy, Star, Target, TrendingUp, ArrowLeft, Award } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import AvatarUpload from '@/components/AvatarUpload'
 
 interface UserStats {
   totalPoints: number
@@ -177,6 +178,15 @@ export default function Dashboard() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
             <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.email}!</p>
+            <div className="mt-4">
+              <AvatarUpload 
+                currentAvatar={user.avatar} 
+                onAvatarUpdate={(avatar) => {
+                  setStats(prev => prev ? {...prev} : null)
+                  window.location.reload()
+                }} 
+              />
+            </div>
           </div>
           <Button variant="outline" onClick={() => window.location.href = '/'}>
             <ArrowLeft className="h-4 w-4 mr-2" />
