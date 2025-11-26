@@ -268,9 +268,9 @@ export default function HomePage() {
               <button
                 key={mode.key}
                 onClick={() => handleOptionSelect(mode.key)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-blue-200 dark:border-blue-800"
+                className="px-5 py-4 md:px-4 md:py-3 text-base md:text-sm bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform active:scale-95 md:hover:scale-105 border border-blue-200 dark:border-blue-800"
               >
-                {mode.emoji} {mode.name}
+                <div className="text-lg md:text-base">{mode.emoji} {mode.name}</div>
                 <div className="text-xs opacity-70">{mode.desc}</div>
               </button>
             ))}
@@ -284,9 +284,10 @@ export default function HomePage() {
               <button
                 key={diff.name}
                 onClick={() => handleOptionSelect(diff.name.toLowerCase())}
-                className={`px-4 py-2 bg-${diff.color}-100 hover:bg-${diff.color}-200 dark:bg-${diff.color}-900/20 dark:hover:bg-${diff.color}-800/30 text-${diff.color}-800 dark:text-${diff.color}-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-${diff.color}-200 dark:border-${diff.color}-800`}
+                className={`px-5 py-4 md:px-4 md:py-3 text-base md:text-sm bg-${diff.color}-100 hover:bg-${diff.color}-200 dark:bg-${diff.color}-900/20 dark:hover:bg-${diff.color}-800/30 text-${diff.color}-800 dark:text-${diff.color}-200 rounded-lg font-medium transition-all transform active:scale-95 md:hover:scale-105 border border-${diff.color}-200 dark:border-${diff.color}-800`}
               >
-                {diff.emoji} {diff.name} ({diff.points} points)
+                <div className="text-lg md:text-base">{diff.emoji} {diff.name}</div>
+                <div className="text-xs opacity-70">({diff.points} points)</div>
               </button>
             ))}
           </div>
@@ -299,9 +300,10 @@ export default function HomePage() {
               <button
                 key={item.count}
                 onClick={() => handleOptionSelect(item.count.toString())}
-                className="px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-blue-200 dark:border-blue-800"
+                className="px-5 py-4 md:px-4 md:py-3 text-base md:text-sm bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 dark:from-blue-900/20 dark:to-cyan-900/20 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform active:scale-95 md:hover:scale-105 border border-blue-200 dark:border-blue-800"
               >
-                {item.emoji} {item.count} questions
+                <div className="text-lg md:text-base">{item.emoji} {item.count}</div>
+                <div className="text-xs opacity-70">questions</div>
               </button>
             ))}
           </div>
@@ -343,7 +345,7 @@ export default function HomePage() {
                   <button
                     key={topic}
                     onClick={() => handleTopicSelect(topic)}
-                    className="px-4 py-3 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20 hover:from-blue-200 hover:to-cyan-200 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform hover:scale-105 border border-blue-200 dark:border-blue-800"
+                    className="px-4 py-4 md:py-3 text-base md:text-sm bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20 hover:from-blue-200 hover:to-cyan-200 dark:hover:from-blue-800/30 dark:hover:to-cyan-800/30 text-slate-800 dark:text-slate-200 rounded-lg font-medium transition-all transform active:scale-95 md:hover:scale-105 border border-blue-200 dark:border-blue-800"
                   >
                     {topic}
                   </button>
@@ -407,7 +409,7 @@ export default function HomePage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder={getPlaceholder()}
                 disabled={conversationStep === 'generating' || isLoading}
-                className="w-full px-4 py-3 pr-20 text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500 disabled:opacity-50"
+                className="w-full px-4 py-4 pr-24 text-base text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500 disabled:opacity-50"
               />
               <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                 <button

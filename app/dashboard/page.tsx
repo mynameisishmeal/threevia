@@ -104,7 +104,7 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
             <p className="mb-4">Please login to view your dashboard</p>
@@ -172,11 +172,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">🧠 Dashboard</h1>
             <p className="text-gray-600 dark:text-gray-300">Welcome back, {user.email}!</p>
             <div className="mt-4">
               <AvatarUpload 
@@ -211,7 +211,7 @@ export default function Dashboard() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
-                  <Star className="h-8 w-8 text-blue-600" />
+                  <Star className="h-8 w-8 text-cyan-500" />
                   <div className="ml-4">
                     <p className="text-2xl font-bold">{stats?.totalPoints || 0}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Points</p>
@@ -223,7 +223,7 @@ export default function Dashboard() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
-                  <Trophy className="h-8 w-8 text-blue-600" />
+                  <Trophy className="h-8 w-8 text-blue-500" />
                   <div className="ml-4">
                     <p className="text-2xl font-bold">{stats?.quizzesCompleted || 0}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Quizzes Completed</p>
@@ -247,7 +247,7 @@ export default function Dashboard() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
-                  <TrendingUp className="h-8 w-8 text-indigo-600" />
+                  <TrendingUp className="h-8 w-8 text-cyan-600" />
                   <div className="ml-4">
                     <p className="text-2xl font-bold">{stats?.bestStreak || 0}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Best Streak</p>

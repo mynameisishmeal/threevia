@@ -61,9 +61,9 @@ export default function GamblePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <Brain className="h-12 w-12 animate-pulse text-blue-600 mx-auto mb-4" />
+          <Brain className="h-12 w-12 animate-pulse text-cyan-500 mx-auto mb-4" />
           <div className="text-xl font-semibold">Loading match...</div>
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function GamblePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-6">
@@ -80,8 +80,8 @@ export default function GamblePage() {
               Leave Match
             </Button>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">Match: {matchCode}</div>
-              <div className="text-sm text-gray-600">💰 Gamble Mode</div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Match: {matchCode}</div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">💰 Gamble Mode</div>
             </div>
           </div>
 
@@ -94,8 +94,8 @@ export default function GamblePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div className="text-center p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-                  <Trophy className="h-12 w-12 text-blue-600 mx-auto mb-2" />
+                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
+                  <Trophy className="h-12 w-12 text-cyan-500 mx-auto mb-2 animate-pulse" />
                   <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">$20</div>
                   <div className="text-sm text-blue-600 dark:text-blue-400">Total Prize Pool</div>
                   <div className="text-xs text-gray-500 mt-2">

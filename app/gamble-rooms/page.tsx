@@ -50,27 +50,27 @@ export default function GambleRoomsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">💰 Public Gamble Matches</h1>
-          <p className="text-slate-600 dark:text-slate-400">Join high-stakes quiz battles</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">💰 Gamble Arena</h1>
+          <p className="text-slate-600 dark:text-slate-400">High-stakes 1v1 quiz battles - Winner takes all!</p>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
-            <Brain className="h-12 w-12 animate-pulse text-blue-500 mx-auto mb-4" />
+            <Brain className="h-12 w-12 animate-pulse text-cyan-500 mx-auto mb-4" />
             <div className="text-xl font-semibold text-slate-900 dark:text-slate-100">Loading matches...</div>
           </div>
         ) : matches.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center">
-            <div className="text-6xl mb-4">💰</div>
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-blue-200 dark:border-slate-700 p-8 text-center">
+            <div className="text-6xl mb-4 animate-bounce">💰</div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">No Public Matches</h2>
             <p className="text-slate-600 dark:text-slate-400 mb-6">Be the first to create a public gambling match!</p>
             <button 
               onClick={() => window.location.href = '/'}
-              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-colors"
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg"
             >
               Create Match
             </button>
